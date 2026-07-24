@@ -1,0 +1,662 @@
+{
+  "timestamp": "2026-02-24T13:42:47.649Z",
+  "summary": {
+    "passed": 94,
+    "failed": 13,
+    "warnings": 23,
+    "total": 130
+  },
+  "results": [
+    {
+      "status": "PASS",
+      "testName": "Admin login returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Admin login code=1 (success)",
+      "details": "Got code=1, msg=success"
+    },
+    {
+      "status": "PASS",
+      "testName": "Admin login returns token",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Admin login returns admin object",
+      "details": ""
+    },
+    {
+      "status": "FAIL",
+      "testName": "Wrong password returns 200 (API convention)",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Wrong password code=0",
+      "details": "Got code=0"
+    },
+    {
+      "status": "PASS",
+      "testName": "Wrong password does not yield usable token",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Non-existent email code=0",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Non-existent email returns admin_not_found",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Empty body does not crash server",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Empty body rejected",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Get admin details returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Get admin details code=1",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Get admin details returns admin info",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "No token: admin details rejected",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Dashboard stats returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Dashboard stats code=1",
+      "details": "Got 1: success"
+    },
+    {
+      "status": "FAIL",
+      "testName": "List users returns 200",
+      "details": ""
+    },
+    {
+      "status": "FAIL",
+      "testName": "List users code=1",
+      "details": "Got 0"
+    },
+    {
+      "status": "WARN",
+      "testName": "No users in DB — skipping user detail/toggle tests",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "List sellers returns 200",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "No sellers in DB — skipping seller detail tests",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "List categories returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "List categories code=1",
+      "details": "Got 1"
+    },
+    {
+      "status": "PASS",
+      "testName": "Create category returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Get category by ID success",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Toggle category status returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Delete category returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "List banners returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "List products returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "List products code=1",
+      "details": "Got 1"
+    },
+    {
+      "status": "PASS",
+      "testName": "Get product detail returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Get product detail code=1",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "List orders returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "List orders code=1",
+      "details": "Got 1"
+    },
+    {
+      "status": "WARN",
+      "testName": "No orders in DB — skipping order detail test",
+      "details": ""
+    },
+    {
+      "status": "FAIL",
+      "testName": "GET /admin/cms/terms returns 200",
+      "details": ""
+    },
+    {
+      "status": "FAIL",
+      "testName": "GET /admin/cms/privacy returns 200",
+      "details": ""
+    },
+    {
+      "status": "FAIL",
+      "testName": "GET /admin/cms/about returns 200",
+      "details": ""
+    },
+    {
+      "status": "FAIL",
+      "testName": "GET /admin/cms/shipping returns 200",
+      "details": ""
+    },
+    {
+      "status": "FAIL",
+      "testName": "GET /admin/cms/cancellation returns 200",
+      "details": ""
+    },
+    {
+      "status": "FAIL",
+      "testName": "GET /admin/cms/refund returns 200",
+      "details": ""
+    },
+    {
+      "status": "FAIL",
+      "testName": "GET /admin/cms/contact returns 200",
+      "details": ""
+    },
+    {
+      "status": "FAIL",
+      "testName": "POST /admin/cms/terms returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Customer login OTP send returns 200",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Customer login responds",
+      "details": "code=1"
+    },
+    {
+      "status": "FAIL",
+      "testName": "Verify OTP returns 200",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "Customer OTP verify did not yield token",
+      "details": "{\"code\":0,\"message\":\"The txn id field must not be empty.\",\"data\":{}}"
+    },
+    {
+      "status": "PASS",
+      "testName": "Resend OTP returns 200",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "No user token — skipping authenticated customer tests",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Seller login OTP send returns 200",
+      "details": ""
+    },
+    {
+      "status": "FAIL",
+      "testName": "Seller verify OTP returns 200",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "Seller OTP verify did not yield token",
+      "details": "{\"code\":0,\"data\":{}}"
+    },
+    {
+      "status": "WARN",
+      "testName": "No seller token — skipping authenticated seller tests",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /admin/getDetails",
+      "details": "code=0, status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /admin/users",
+      "details": "code=0, status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /admin/sellers",
+      "details": "code=0, status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /admin/products",
+      "details": "code=0, status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /admin/orders",
+      "details": "code=0, status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /admin/dashboard/stats",
+      "details": "code=0, status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /admin/categories",
+      "details": "code=0, status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /admin/banners",
+      "details": "code=0, status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /user/profile",
+      "details": "code=3, status=401"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /user/address",
+      "details": "code=3, status=401"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /user/cart",
+      "details": "code=3, status=401"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /user/orders",
+      "details": "code=3, status=401"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /seller/profile",
+      "details": "code=3, status=401"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /seller/products",
+      "details": "code=3, status=401"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /order/seller/orders",
+      "details": "code=3, status=401"
+    },
+    {
+      "status": "PASS",
+      "testName": "No-token blocked: GET /order/my-orders",
+      "details": "code=3, status=401"
+    },
+    {
+      "status": "PASS",
+      "testName": "Fake JWT rejected: \"Bearer fake.token.here...\"",
+      "details": "code=0"
+    },
+    {
+      "status": "PASS",
+      "testName": "Fake JWT rejected: \"Bearer eyJhbGciOiJIUzI1NiJ9.ey...\"",
+      "details": "code=0"
+    },
+    {
+      "status": "PASS",
+      "testName": "Fake JWT rejected: \"InvalidFormat...\"",
+      "details": "code=0"
+    },
+    {
+      "status": "PASS",
+      "testName": "Fake JWT rejected: \"...\"",
+      "details": "code=0"
+    },
+    {
+      "status": "PASS",
+      "testName": "Fake JWT rejected: \"Bearer ...\"",
+      "details": "code=0"
+    },
+    {
+      "status": "WARN",
+      "testName": "No user token — cannot test cross-role",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "No seller token — cannot test cross-role",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "UNPROTECTED admin route: GET /coupon/admin/list",
+      "details": "Missing auth middleware — CRITICAL"
+    },
+    {
+      "status": "PASS",
+      "testName": "Admin route protected: POST /coupon/admin/create",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "UNPROTECTED admin route: GET /offers/admin/list",
+      "details": "Missing auth middleware — CRITICAL"
+    },
+    {
+      "status": "PASS",
+      "testName": "Admin route protected: POST /offers/admin/create",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "UNPROTECTED admin route: GET /offers/admin/stats/overview",
+      "details": "Missing auth middleware — CRITICAL"
+    },
+    {
+      "status": "WARN",
+      "testName": "CRITICAL: /admin/register is publicly accessible — anyone can create admin!",
+      "details": "Requires immediate fix"
+    },
+    {
+      "status": "PASS",
+      "testName": "NoSQL injection blocked: {\"$gt\":\"\"}",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "NoSQL injection blocked: {\"$ne\":null}",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "NoSQL injection blocked: {\"$regex\":\".*\"}",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "NoSQL injection blocked: {\"$where\":\"1==1\"}",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "SQL injection string handled: ' OR 1=1 --",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "SQL injection string handled: '; DROP TABLE users; --",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "SQL injection string handled: 1' UNION SELECT null,null,null",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "SQL injection string handled: admin'--",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "SQL injection string handled: ' OR ''='",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "NoSQL injection on OTP verify blocked",
+      "details": "code=0"
+    },
+    {
+      "status": "PASS",
+      "testName": "XSS in CMS doesn't crash server",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Path traversal in param doesn't crash: ../../../etc/passwd",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Path traversal in param doesn't crash: ..\\..\\..\\windows\\system.i",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Path traversal in param doesn't crash: ....//....//....//etc/pas",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Path traversal in param doesn't crash: %2e%2e%2f%2e%2e%2f%2e%2e%",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "No rate limiting on admin login — brute force possible",
+      "details": "Add rate limiting middleware"
+    },
+    {
+      "status": "WARN",
+      "testName": "No rate limiting on OTP verification — brute force possible",
+      "details": "Add rate limiting"
+    },
+    {
+      "status": "PASS",
+      "testName": "Huge payload doesn't crash server",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "Wrong types don't crash server",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "Null bytes/CRLF don't crash server",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Invalid ObjectID \"not-an-id\" doesn't crash",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "Invalid ObjectID \"123\" doesn't crash",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "Invalid ObjectID \"'; DROP TABLE;--\" doesn't crash",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "Invalid ObjectID \"<script>alert(1)</script>\" doesn't crash",
+      "details": "status=200"
+    },
+    {
+      "status": "PASS",
+      "testName": "Invalid ObjectID \"undefined\" doesn't crash",
+      "details": "status=400"
+    },
+    {
+      "status": "PASS",
+      "testName": "Invalid ObjectID \"null\" doesn't crash",
+      "details": "status=400"
+    },
+    {
+      "status": "WARN",
+      "testName": "Missing security header: x-content-type-options",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "Missing security header: x-frame-options",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "Missing security header: strict-transport-security",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "Missing security header: x-xss-protection",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "Missing security header: content-security-policy",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "CORS allows all origins (*) — restrict in production",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "Server discloses technology: x-powered-by=Express",
+      "details": "Use app.disable(\"x-powered-by\")"
+    },
+    {
+      "status": "PASS",
+      "testName": "JWT with alg=none rejected",
+      "details": "code=0"
+    },
+    {
+      "status": "PASS",
+      "testName": "Expired/invalid JWT rejected",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Hardcoded OTP '123456' does not bypass",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "Master OTP check completed",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "No stack trace exposed on /admin/users/invalidObjectId!@#",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "No stack trace exposed on /nonexistent/route",
+      "details": ""
+    },
+    {
+      "status": "WARN",
+      "testName": "Stack trace exposed on /admin/categories/%%%",
+      "details": "Hide errors in production"
+    },
+    {
+      "status": "PASS",
+      "testName": "No internal error details in login response",
+      "details": ""
+    },
+    {
+      "status": "PASS",
+      "testName": "GET /admin/login (expected POST) doesn't crash",
+      "details": "status=200"
+    },
+    {
+      "status": "PASS",
+      "testName": "DELETE /admin/login (expected POST) doesn't crash",
+      "details": "status=200"
+    },
+    {
+      "status": "PASS",
+      "testName": "DELETE /admin/users (expected GET) doesn't crash",
+      "details": "status=200"
+    },
+    {
+      "status": "PASS",
+      "testName": "POST /admin/getDetails (expected GET) doesn't crash",
+      "details": "status=200"
+    },
+    {
+      "status": "PASS",
+      "testName": "Large body handled",
+      "details": "status=413"
+    },
+    {
+      "status": "PASS",
+      "testName": "Deeply nested JSON doesn't crash",
+      "details": "status=400"
+    }
+  ],
+  "executionTime": "15.6s"
+}

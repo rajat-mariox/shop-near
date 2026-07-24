@@ -1,0 +1,512 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  ImageBackground,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import Feather from 'react-native-vector-icons/Feather';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { AppImages } from '../../constants/app.image';
+import { Colors } from '../../themes/Colors';
+import { styles, HEADER_TOP_PADDING } from './styles';
+import { moderateScale } from '../../utils/responsive';
+import { imageSource } from '../../utils/media';
+import { getTokenStorage } from '../../utils/tokenStorage';
+import { fetchUserProfile } from '../../service/userProfile';
+import { fetchHomeScreen } from '../../service/homeService';
+
+// Offer card ka gradient. react-native-svg pehle se project me hai, isliye
+// koi nayi gradient library add karne ki zaroorat nahi padi.
+const OfferGradient = ({ from, to }) => (
+  <Svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
+    <Defs>
+      <LinearGradient id="offerGrad" x1="1" y1="1" x2="0" y2="0">
+        <Stop offset="0" stopColor={from} />
+        <Stop offset="1" stopColor={to} />
+      </LinearGradient>
+    </Defs>
+    <Rect x="0" y="0" width="100%" height="100%" fill="url(#offerGrad)" />
+  </Svg>
+);
+
+// Promo card ke banner ki halki tints — Figma me har card alag rang ka hai
+// (violet/orange), backend rang nahi bhejta isliye index se rotate hoti hain.
+const PROMO_TINTS = [
+  { bg: '#F1EEFF', accent: '#6466FD' },
+  { bg: '#FFF1E2', accent: '#E98A0C' },
+  { bg: '#FFECE9', accent: '#FF6051' },
+];
+
+const Dashboard = (props) => {
+  const navigation = props.navigation;
+  // Header status bar ke peeche tak jaata hai (onboarding screen ki tarah)
+  const insets = useSafeAreaInsets();
+  const [userProfile, setUserProfile] = useState(null);
+  const [homeData, setHomeData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeCategory, setActiveCategory] = useState(null);
+
+  const loadHomeScreen = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    fetchHomeScreen().then((result) => {
+      if (result.success) {
+        setHomeData(result.data);
+      } else {
+        setError(result.message || 'Home screen load nahi ho paayi');
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    fetchUserProfile().then((result) => {
+      if (result.success) setUserProfile(result.data);
+    });
+    loadHomeScreen();
+  }, [loadHomeScreen]);
+
+  const requireLogin = async (routeName, params) => {
+    const token = await getTokenStorage();
+    navigation.navigate(token ? routeName : 'Login', token ? params : undefined);
+  };
+
+  // Banner tabhi clickable hai jab backend ne aisa target bheja ho jiske liye screen maujood hai
+  const bannerTarget = (banner) =>
+    banner.redirectType === 'product' && banner.productId ? banner.productId : null;
+
+  const deliveryLocation = homeData?.delivery?.location || userProfile?.fullName || '';
+
+  const renderHeader = () => (
+    <ImageBackground
+      source={AppImages.headerBg}
+      style={[styles.header, { paddingTop: insets.top + HEADER_TOP_PADDING }]}>
+      {/* Design ke festive string lights, status bar ke theek neeche */}
+      <Image
+        source={AppImages.headerLights}
+        style={[styles.headerLights, { top: insets.top }]}
+      />
+      <View style={styles.headerTopRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.deliveryLabel}>Delivery in</Text>
+          <Text style={styles.deliveryTime}>
+            {homeData?.delivery?.estimatedDeliveryTime || ''}
+          </Text>
+          {deliveryLocation ? (
+            <TouchableOpacity
+              style={styles.locationRow}
+              onPress={() => requireLogin('SavedAddress')}>
+              <Ionicons name="location-outline" size={moderateScale(15)} color="#fff" />
+              <Text numberOfLines={1} style={styles.locationText}>
+                {deliveryLocation}
+              </Text>
+              <AntDesign name="down" size={moderateScale(11)} color="#fff" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        <View style={styles.headerActions}>
+          {homeData?.wallet?.balance != null && (
+            <View style={styles.walletChip}>
+              <Image source={AppImages.gift} style={styles.walletIcon} />
+              <Text style={styles.walletText}>₹ {homeData.wallet.balance}</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => requireLogin('ProfileScreen')}>
+            <Feather name="menu" size={moderateScale(22)} color={Colors.theme1} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={styles.searchBar}
+        activeOpacity={0.9}
+        onPress={() => navigation.navigate('Search')}>
+        <AntDesign name="search1" size={moderateScale(18)} color="#353535" />
+        <Text style={styles.searchPlaceholder}>Search</Text>
+        <Image source={AppImages.camera} style={styles.searchIcon} />
+        <View style={styles.searchDivider} />
+        <Image source={AppImages.mic} style={styles.searchIcon} />
+      </TouchableOpacity>
+
+      {homeData?.banners && homeData.banners.length > 0 && (
+        <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
+          {homeData.banners.map((banner, idx) => (
+            <View key={banner._id || idx} style={styles.bannerSlide}>
+              {/* Design me banner ke peeche halka wooden fence overlay hai */}
+              <Image source={AppImages.headerFence} style={styles.bannerFence} />
+              <Image
+                source={imageSource(banner.image, AppImages.girl)}
+                style={styles.bannerImage}
+              />
+              <View style={styles.bannerContent}>
+                <Text numberOfLines={2} style={styles.bannerTitle}>
+                  {banner.title}
+                </Text>
+                {banner.subtitle ? (
+                  <Text numberOfLines={2} style={styles.bannerSubtitle}>
+                    {banner.subtitle}
+                  </Text>
+                ) : null}
+                {bannerTarget(banner) ? (
+                  <TouchableOpacity
+                    style={styles.bannerButton}
+                    onPress={() =>
+                      navigation.navigate('ProductDetailScreen', {
+                        productId: bannerTarget(banner),
+                      })
+                    }>
+                    <Text style={styles.bannerButtonText}>Shop Now</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+    </ImageBackground>
+  );
+
+  const renderCategories = () => {
+    if (!homeData?.categories?.length) return null;
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipRow}>
+        {homeData.categories.map((cat, idx) => {
+          const isActive = (activeCategory || homeData.categories[0]?._id) === cat._id;
+          return (
+            <TouchableOpacity
+              key={cat._id || idx}
+              onPress={() => setActiveCategory(cat._id)}
+              style={[styles.chip, isActive ? styles.chipActive : styles.chipInactive]}>
+              <Image source={imageSource(cat.image, AppImages.shop)} style={styles.chipImage} />
+              <Text
+                numberOfLines={2}
+                style={[
+                  styles.chipText,
+                  isActive ? styles.chipTextActive : styles.chipTextInactive,
+                ]}>
+                {cat.categoryName}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    );
+  };
+
+  const renderShops = () => {
+    if (!homeData?.nearbyShops?.length) return null;
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Shops Near You</Text>
+          <TouchableOpacity>
+            <Text style={styles.sectionLink}>View All</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.sectionSubtitle}>
+          Verified local sellers delivering in under 30 mins
+        </Text>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.hList}>
+          {homeData.nearbyShops.map((shop, idx) => (
+            <View key={shop._id || idx} style={styles.shopCard}>
+              <Image source={imageSource(shop.image, AppImages.shop)} style={styles.shopImage} />
+              <View style={styles.shopInfo}>
+                <View style={styles.shopNameRow}>
+                  <Text numberOfLines={1} style={styles.shopName}>
+                    {shop.name}
+                  </Text>
+                  {shop.isVerified ? (
+                    <AntDesign name="checkcircle" size={moderateScale(13)} color="#2ecc71" />
+                  ) : null}
+                </View>
+
+                {shop.distance || shop.rating > 0 ? (
+                  <View style={styles.shopMetaRow}>
+                    {shop.distance ? (
+                      <>
+                        <Ionicons name="location-outline" size={moderateScale(13)} color="#0A130F" />
+                        <Text style={styles.shopMetaText}>{shop.distance}</Text>
+                      </>
+                    ) : null}
+                    {shop.rating > 0 ? (
+                      <>
+                        <AntDesign
+                          name="star"
+                          size={moderateScale(13)}
+                          color="#FFC107"
+                          style={{ marginLeft: shop.distance ? 10 : 0 }}
+                        />
+                        <Text style={styles.shopRatingText}>
+                          {shop.rating}(By {shop.totalRatings}+)
+                        </Text>
+                      </>
+                    ) : null}
+                  </View>
+                ) : null}
+
+                {shop.offerText ? (
+                  <View style={styles.offerChip}>
+                    <Image
+                      source={AppImages.dicount}
+                      style={{ height: moderateScale(13), width: moderateScale(13) }}
+                    />
+                    <Text style={styles.offerChipText}>{shop.offerText}</Text>
+                  </View>
+                ) : null}
+
+                <View style={styles.shopButtonRow}>
+                  {shop.itemCount > 0 ? (
+                    <View style={[styles.pill, styles.pillItems]}>
+                      <Text style={styles.pillSmallText}>Added New</Text>
+                      <Text style={styles.pillText}>{shop.itemCount} items</Text>
+                    </View>
+                  ) : null}
+                  <TouchableOpacity
+                    style={[styles.pill, styles.pillProducts]}
+                    onPress={() =>
+                      // Search tab ka redesigned product-list screen, isi shop
+                      // ke saath selected
+                      navigation.navigate('Search', { sellerId: shop._id })
+                    }>
+                    <Text style={styles.pillText}>View Products</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderOffers = () => {
+    if (!homeData?.offers?.length) return null;
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Save up to 50% + Extra Discount</Text>
+        </View>
+        <View style={styles.offerGrid}>
+          {homeData.offers.map((offer, idx) => {
+            const from = offer.bgColor || '#FFE9C6';
+            const to = offer.bgColorEnd || from;
+            // Halke background par gehra text, gehre par safed
+            const isLight = !offer.bgColorEnd;
+            const fg = isLight ? '#10111B' : '#FFFFFF';
+            const off =
+              offer.discountPercentage
+                ? `${offer.discountPercentage}% OFF`
+                : offer.discountAmount
+                  ? `₹${offer.discountAmount} OFF`
+                  : null;
+            return (
+              <View key={offer._id || idx} style={styles.offerCard}>
+                <OfferGradient from={from} to={to} />
+                <View style={styles.offerCardInner}>
+                  <View style={styles.offerTextBox}>
+                    <Text numberOfLines={1} style={[styles.offerTitle, { color: fg }]}>
+                      {offer.title}
+                    </Text>
+                    <Text numberOfLines={2} style={[styles.offerSubtitle, { color: fg }]}>
+                      {offer.description || `offer starting\nat ₹ ${offer.priceStartsAt}`}
+                    </Text>
+                    <View style={[styles.offerArrow, { borderColor: fg }]}>
+                      <AntDesign name="arrowright" size={moderateScale(11)} color={fg} />
+                    </View>
+                  </View>
+                  <Image
+                    source={imageSource(offer.image, AppImages.shirt)}
+                    style={styles.offerImage}
+                  />
+                </View>
+                {off ? (
+                  <View style={styles.offerBadge}>
+                    <Text style={styles.offerBadgeText}>{off}</Text>
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
+  const renderBrands = () => {
+    if (!homeData?.brands?.length) return null;
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Popular Brand</Text>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.hList}>
+          {homeData.brands.map((brand, idx) => {
+            const color = brand.themeColor || '#B11116';
+            return (
+              <View key={brand._id || idx}>
+                <View style={[styles.brandCard, { borderColor: color }]}>
+                  <Image
+                    source={imageSource(brand.logo, AppImages.gucci)}
+                    style={styles.brandLogo}
+                  />
+                  {brand.offer ? (
+                    <View style={[styles.brandBadge, { backgroundColor: color }]}>
+                      <Text numberOfLines={1} style={styles.brandBadgeText}>
+                        {brand.offer}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+                {brand.name ? (
+                  <Text numberOfLines={1} style={styles.brandName}>
+                    {brand.name}
+                  </Text>
+                ) : null}
+              </View>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderPromoCodes = () => {
+    if (!homeData?.promoCodes?.length) return null;
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Promo Codes for More Savings</Text>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.hList}>
+          {/* Design (Figma 162:3211) me banner ke andar title/desc/"Use code" pill
+              dikhte hain — wahan wo image me baked hai, yahan admin alag-alag
+              fields + image bhejta hai. Isliye banner compose hota hai: left me
+              coupon ka data, right me admin ki image — image lagane par bhi
+              poora data dikhta hai. */}
+          {homeData.promoCodes.map((promo, idx) => {
+            const tint = PROMO_TINTS[idx % PROMO_TINTS.length];
+            const title =
+              promo.title ||
+              (promo.discountType === 'percentage'
+                ? `Get ${promo.discountValue}% instant Discount`
+                : `Flat ₹ ${promo.discountValue} Instant OFF`);
+            // Description ke saath min-order bhi — admin ka poora data dikhe
+            const subtitle = [
+              promo.description,
+              promo.minOrderValue ? `Min order ₹ ${promo.minOrderValue}` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ');
+            return (
+              <View key={promo._id || idx} style={styles.promoCard}>
+                <View style={[styles.promoBanner, { backgroundColor: tint.bg }]}>
+                  <View style={styles.promoBannerTop}>
+                    <View style={styles.promoInfo}>
+                      <Text numberOfLines={2} style={styles.promoTitle}>
+                        {title}
+                      </Text>
+                      {subtitle ? (
+                        <Text numberOfLines={2} style={styles.promoDesc}>
+                          {subtitle}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {promo.image ? (
+                      <Image
+                        source={imageSource(promo.image)}
+                        style={styles.promoGraphic}
+                      />
+                    ) : null}
+                  </View>
+                  {/* Pill alag row me hai (text column ke andar nahi) taaki
+                      lambe coupon codes ko poori banner width mile */}
+                  {promo.code ? (
+                    <View
+                      style={[styles.promoCodePill, { borderColor: tint.accent }]}>
+                      <Text
+                        numberOfLines={1}
+                        style={[styles.promoCodeText, { color: tint.accent }]}>
+                        Use code {promo.code}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+                <View style={styles.promoFooterRow}>
+                  <Text numberOfLines={1} style={styles.promoValidity}>
+                    {promo.validity}
+                  </Text>
+                  <Text style={styles.promoLink}>Know more</Text>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // Navigator khud status bar ki jagah bhar deta hai, isliye yahan top inset nahi chahiye
+  return (
+    <View style={styles.sectionContainer}>
+      <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}>
+        {renderHeader()}
+
+        {loading && (
+          <View style={styles.stateBox}>
+            <ActivityIndicator size="large" color={Colors.theme1} />
+          </View>
+        )}
+
+        {!loading && error && (
+          <View style={styles.stateBox}>
+            <Text style={styles.stateText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={loadHomeScreen}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {!loading && !error && (
+          <>
+            {renderCategories()}
+            {renderShops()}
+            {renderOffers()}
+            {renderBrands()}
+            {renderPromoCodes()}
+          </>
+        )}
+      </ScrollView>
+    </View>
+  );
+};
+
+export default Dashboard;

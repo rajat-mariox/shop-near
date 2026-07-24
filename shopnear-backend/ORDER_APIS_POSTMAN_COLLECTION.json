@@ -1,0 +1,572 @@
+{
+  "info": {
+    "name": "ShopNear Order Management APIs",
+    "description": "Complete Order Management System - Customer & Seller Flow with OTP-based Delivery Confirmation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "CUSTOMER ORDER FLOW",
+      "item": [
+        {
+          "name": "1. Add to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 2,\n  \"size\": \"M\",\n  \"color\": \"Black\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/cart/add",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "cart", "add"]
+            },
+            "description": "Add product to cart"
+          }
+        },
+        {
+          "name": "2. Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/cart/list",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "cart", "list"]
+            },
+            "description": "Fetch user's current cart"
+          }
+        },
+        {
+          "name": "3. Place Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"addressId\": \"{{addressId}}\",\n  \"paymentMode\": \"online\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/place-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "place-order"]
+            },
+            "description": "Place order from cart (creates order with pending status)"
+          }
+        },
+        {
+          "name": "4. Verify Payment (Razorpay)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"razorpayPaymentId\": \"pay_1234567890\",\n  \"razorpayOrderId\": \"order_1234567890\",\n  \"razorpaySignature\": \"signature_hash_here\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/verify-payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "verify-payment"]
+            },
+            "description": "Verify Razorpay payment and update order status"
+          }
+        },
+        {
+          "name": "5. Get My Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/my-orders?page=1&limit=10&status=pending&paymentMode=online",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "my-orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentMode",
+                  "value": "online",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all customer orders with filters (status, paymentMode, date range)"
+          }
+        },
+        {
+          "name": "6. Get Order Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "orders", "{{orderId}}"]
+            },
+            "description": "Get detailed information about a specific order"
+          }
+        },
+        {
+          "name": "7. Track Order",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/track/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "track", "{{orderId}}"]
+            },
+            "description": "Track order status and seller-wise delivery status"
+          }
+        },
+        {
+          "name": "8. Verify Delivery OTP (NEW)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"orderId\": \"{{orderId}}\",\n  \"sellerId\": \"{{sellerId}}\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/verify-delivery-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "verify-delivery-otp"]
+            },
+            "description": "Customer verifies delivery OTP sent by seller. Marks seller's portion of order as delivered."
+          }
+        },
+        {
+          "name": "9. Cancel Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"orderId\": \"{{orderId}}\",\n  \"cancelReason\": \"Changed my mind\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/cancel-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "cancel-order"]
+            },
+            "description": "Customer cancels an order (only before processing)"
+          }
+        },
+        {
+          "name": "10. Initiate Return",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"orderId\": \"{{orderId}}\",\n  \"returnReason\": \"Product quality not as expected\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/initiate-return",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "initiate-return"]
+            },
+            "description": "Initiate return for a delivered order"
+          }
+        },
+        {
+          "name": "11. Add to Wishlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"productId\": \"{{productId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/wishlist/add",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "wishlist", "add"]
+            },
+            "description": "Add product to wishlist"
+          }
+        },
+        {
+          "name": "12. Get Wishlist",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/wishlist/list",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "wishlist", "list"]
+            },
+            "description": "Get user's wishlist items"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SELLER ORDER FLOW",
+      "item": [
+        {
+          "name": "1. Get Seller Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/seller/orders?page=1&limit=10&status=pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "seller", "orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all orders containing seller's products with filters"
+          }
+        },
+        {
+          "name": "2. Get Seller Order Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/seller/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "seller", "orders", "{{orderId}}"]
+            },
+            "description": "Get order details (only seller's products will be shown)"
+          }
+        },
+        {
+          "name": "3. Seller Accept Order (NEW)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": \"{{sellerId}}\",\n  \"orderId\": \"{{orderId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/seller/accept",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "seller", "accept"]
+            },
+            "description": "Seller accepts an order. Sets seller's order status to 'confirmed'. Order status becomes 'confirmed'."
+          }
+        },
+        {
+          "name": "4. Seller Reject Order (NEW)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": \"{{sellerId}}\",\n  \"orderId\": \"{{orderId}}\",\n  \"reason\": \"Out of stock\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/seller/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "seller", "reject"]
+            },
+            "description": "Seller rejects an order. Sets seller's order status to 'cancelled'. If ALL sellers cancel, entire order becomes 'cancelled'."
+          }
+        },
+        {
+          "name": "5. Update Order Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"status\": \"processing\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/seller/update-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "seller", "update-status"]
+            },
+            "description": "Update order status (pending→confirmed→processing→shipped→delivered). Enum: pending, confirmed, processing, shipped, delivered, cancelled"
+          }
+        },
+        {
+          "name": "6. Send Delivery OTP (NEW)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sellerId\": \"{{sellerId}}\",\n  \"orderId\": \"{{orderId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/seller/send-delivery-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "seller", "send-delivery-otp"]
+            },
+            "description": "Seller sends OTP for delivery. Generates 6-digit OTP, expires in 10 minutes. Sets status to 'shipped'. Returns OTP (remove in production and send via SMS)."
+          }
+        },
+        {
+          "name": "7. Update Tracking Information",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"trackingNumber\": \"TRK123456789\",\n  \"estimatedDeliveryDate\": \"2024-01-20T00:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/seller/update-tracking",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "seller", "update-tracking"]
+            },
+            "description": "Update tracking number and estimated delivery date for shipment"
+          }
+        },
+        {
+          "name": "8. Get Seller Order Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/seller/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "seller", "stats"]
+            },
+            "description": "Get seller's order statistics (total orders, pending, completed, revenue)"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "userToken",
+      "value": "your_customer_jwt_token_here",
+      "type": "string"
+    },
+    {
+      "key": "sellerToken",
+      "value": "your_seller_jwt_token_here",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "customer_id_from_auth",
+      "type": "string"
+    },
+    {
+      "key": "sellerId",
+      "value": "seller_id_from_auth",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "ORD-xxxxxxxxxxxx",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "product_id_here",
+      "type": "string"
+    },
+    {
+      "key": "addressId",
+      "value": "address_id_here",
+      "type": "string"
+    }
+  ]
+}

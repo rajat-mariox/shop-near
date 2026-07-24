@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment secrets
+.env
+.env.local
+
+# Build outputs
+dist/
+build/
+.expo/
+android/app/build/
+android/build/
+android/.gradle/
+*.apk
+*.aab
+
+# Logs & OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# Local editor/agent settings
+.claude/settings.local.json
