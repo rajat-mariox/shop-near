@@ -36,11 +36,11 @@ export const styles = StyleSheet.create({
     height: KEYPAD_HEIGHT,
   },
   logo: {
-    width: scale(230),
-    height: verticalScale(70),
+    width: scale(150),
+    height: scale(150),
     resizeMode: 'contain',
     alignSelf: 'center',
-    marginTop: verticalScale(44),
+    marginTop: verticalScale(24),
   },
   heading: {
     color: Colors.BLACK1,

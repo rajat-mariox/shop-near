@@ -139,6 +139,27 @@ module.exports = () => {
   };
 
   /**
+   * Account deletion (Play Store policy)
+   * 7 din ka grace period — is beech login karne par account recover ho jata hai,
+   * warna daily cron permanently delete kar deta hai.
+   */
+  const deleteAccount = async (req, res, next) => {
+    console.log("UserController => deleteAccount");
+    let { userId, reason } = req.body;
+
+    await UserService().updateUsers(userId, {
+      deletionRequestedAt: new Date(),
+      deletionReason: reason || "",
+      token: null,
+      deviceToken: null,
+    });
+
+    req.rData = { deletionScheduledAfterDays: 7 };
+    req.msg = "account_deletion_scheduled";
+    next();
+  };
+
+  /**
    * Address
    */
   const addUserAddress = async (req, res, next) => {
@@ -284,6 +305,7 @@ module.exports = () => {
     getAllUserList,
     getDetails,
     editUser,
+    deleteAccount,
     /**
      * Address
      */

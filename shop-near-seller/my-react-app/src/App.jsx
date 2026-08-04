@@ -12,6 +12,7 @@ import Product from "./components/Product/Product";
 import AccountProfile from "./components/Account/AccountProfile";
 import Transaction from "./components/Transaction/Transaction";
 import Customer from "./components/Customer/Customer";
+import Agents from "./components/Agents/Agents";
 import SalesReport from "./components/SalesReport/SalesReport";
 import Login from "./components/Auth/Login";
 import Onboarding from "./components/Onboarding/Onboarding";
@@ -113,6 +114,7 @@ function ProtectedLayout() {
           <Route path="/sales-report" element={<SalesReport />} />
           <Route path="/transaction" element={<Transaction />} />
           <Route path="/customer" element={<Customer />} />
+          <Route path="/agents" element={<Agents />} />
         </Routes>
       </div>
     </div>

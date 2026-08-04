@@ -7,10 +7,11 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../themes/Colors';
 import { clearStorage } from '../../utils/tokenStorage';
-import { fetchUserProfile } from '../../service/userProfile';
+import { fetchUserProfile, deleteAccount } from '../../service/userProfile';
 import { applyCoupon } from '../../service/couponService';
 import { showToast } from '../../utils/toast';
 import PromoModal from '../CartScreen/PromoModal';
+import DeleteAccountModal from './DeleteAccountModal';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
 
 const THEME_COLOR = Colors.theme1;
@@ -26,6 +27,7 @@ const menu = [
   { key: 'wishlist', label: 'My Wishlist', icon: <MaterialCommunityIcons name="heart" size={moderateScale(21)} color={ICON_GREY} /> },
   { key: 'rate', label: 'Rate this app', icon: <MaterialCommunityIcons name="star" size={moderateScale(22)} color={ICON_GREY} /> },
   { key: 'logout', label: 'Log out', icon: <MaterialCommunityIcons name="logout" size={moderateScale(21)} color={ICON_GREY} /> },
+  { key: 'delete', label: 'Delete account', icon: <MaterialCommunityIcons name="trash-can-outline" size={moderateScale(21)} color="#EE3E35" /> },
 ];
 
 const MyProfileScreen = ({ navigation }) => {
@@ -40,6 +42,29 @@ const MyProfileScreen = ({ navigation }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [voucherVisible, setVoucherVisible] = useState(false);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [deleteVisible, setDeleteVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // Delete request backend par 7-din grace period schedule karta hai;
+  // success par logout karke Login par bhej dete hain
+  const handleDeleteAccount = async (reason) => {
+    setDeleting(true);
+    const result = await deleteAccount(reason);
+    setDeleting(false);
+    if (result.success) {
+      setDeleteVisible(false);
+      await clearStorage();
+      showToast(
+        'Your account will be permanently deleted after 7 days. Log in within 7 days to recover it.',
+        'success',
+      );
+      if (navigation && navigation.replace) {
+        navigation.replace('Login');
+      }
+    } else {
+      showToast(result.message, 'error');
+    }
+  };
 
   // Coupon cart par apply hota hai — success par Cart tab me discount dikhega
   const handleApplyCoupon = async (code) => {
@@ -75,6 +100,8 @@ const MyProfileScreen = ({ navigation }) => {
       handleLogout();
     } else if (item.key === 'voucher') {
       setVoucherVisible(true);
+    } else if (item.key === 'delete') {
+      setDeleteVisible(true);
     }
   };
 
@@ -157,6 +184,12 @@ const MyProfileScreen = ({ navigation }) => {
         onClose={() => setVoucherVisible(false)}
         onApply={handleApplyCoupon}
         applying={applyingCoupon}
+      />
+      <DeleteAccountModal
+        visible={deleteVisible}
+        onClose={() => setDeleteVisible(false)}
+        onConfirm={handleDeleteAccount}
+        deleting={deleting}
       />
     </SafeAreaView>
   );

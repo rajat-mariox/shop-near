@@ -4,7 +4,146 @@ import {
   createBanner,
   updateBanner,
   deleteBanner as deleteBannerApi,
+  getHomeHeaderBg,
+  updateHomeHeaderBg,
+  removeHomeHeaderBg,
 } from "../../api/adminApi";
+
+// App ke home header (delivery + search + banner area) ka background —
+// upload/remove yahi se hota hai
+const HeaderBgSection = () => {
+  const [current, setCurrent] = useState({ url: "", type: "" });
+  const [preview, setPreview] = useState(null);
+  const [previewType, setPreviewType] = useState("");
+  const [saving, setSaving] = useState(false);
+  const fileRef = useRef(null);
+
+  const load = async () => {
+    try {
+      const res = await getHomeHeaderBg();
+      const d = res.data?.data || {};
+      setCurrent({ url: d.homeHeaderBg || "", type: d.homeHeaderBgType || "" });
+      setPreview(d.homeHeaderBg || null);
+      setPreviewType(d.homeHeaderBgType || "");
+    } catch (err) {
+      console.error("Failed to fetch header bg:", err);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+      setPreviewType(file.type.startsWith("video/") ? "video" : "image");
+    }
+  };
+
+  const handleSave = async () => {
+    const file = fileRef.current?.files?.[0];
+    if (!file) return alert("Please select an image or video first");
+    const fd = new FormData();
+    fd.append("bgMedia", file);
+    setSaving(true);
+    try {
+      await updateHomeHeaderBg(fd);
+      alert("Home header background updated");
+      if (fileRef.current) fileRef.current.value = "";
+      load();
+    } catch (err) {
+      console.error(err);
+      alert(err?.response?.data?.message || "Failed to update background");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!confirm("Remove background? App will show its default design.")) return;
+    setSaving(true);
+    try {
+      await removeHomeHeaderBg();
+      if (fileRef.current) fileRef.current.value = "";
+      load();
+    } catch (err) {
+      console.error(err);
+      alert(err?.response?.data?.message || "Failed to remove background");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
+        Home Header Background
+      </div>
+      <div style={{ fontSize: 13, color: "#888", marginBottom: 12 }}>
+        App ke home screen par upar wale poore area (delivery, search aur banner
+        ke peeche) ka background. Image ya video dono chalega.
+        <br />
+        <b>Recommended size: 1080 × 950 px</b> (ratio ~8:7). Video ho to 5-10
+        sec, compressed.
+      </div>
+      <input
+        type="file"
+        accept="image/*,video/*"
+        ref={fileRef}
+        onChange={handleFileChange}
+      />
+      {preview &&
+        (previewType === "video" ? (
+          <video
+            src={preview}
+            controls
+            muted
+            loop
+            style={{
+              display: "block",
+              width: 320,
+              maxHeight: 280,
+              background: "#f7f7f7",
+              borderRadius: 8,
+              marginTop: 10,
+              border: "1px solid #eee",
+            }}
+          />
+        ) : (
+          <img
+            src={preview}
+            alt="Header background preview"
+            style={{
+              display: "block",
+              width: 320,
+              maxHeight: 280,
+              objectFit: "contain",
+              background: "#f7f7f7",
+              borderRadius: 8,
+              marginTop: 10,
+              border: "1px solid #eee",
+            }}
+          />
+        ))}
+      <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+        <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : "Save Background"}
+        </button>
+        {current.url && (
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={handleRemove}
+            disabled={saving}
+            style={{ color: "red" }}>
+            Remove
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const BannerList = () => {
   const [banners, setBanners] = useState([]);
@@ -14,7 +153,12 @@ const BannerList = () => {
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [preview, setPreview] = useState(null);
+  // Banner slide ka background (image ya video) — app me slide ke peeche dikhta hai
+  const [bgPreview, setBgPreview] = useState(null);
+  const [bgPreviewType, setBgPreviewType] = useState("");
   const fileRef = useRef(null);
+  const bgFileRef = useRef(null);
 
   const fetchBanners = async () => {
     setLoading(true);
@@ -38,6 +182,9 @@ const BannerList = () => {
     setTitle("");
     setLink("");
     setIsActive(true);
+    setPreview(null);
+    setBgPreview(null);
+    setBgPreviewType("");
     setModal(true);
   };
 
@@ -46,7 +193,25 @@ const BannerList = () => {
     setTitle(b.title || "");
     setLink(b.link || "");
     setIsActive(b.isActive !== false);
+    setPreview(b.image || b.imageUrl || null);
+    setBgPreview(b.bgMedia || null);
+    setBgPreviewType(b.bgMediaType || "");
     setModal(true);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleBgFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setBgPreview(URL.createObjectURL(file));
+      setBgPreviewType(file.type.startsWith("video/") ? "video" : "image");
+    }
   };
 
   const handleSave = async () => {
@@ -56,6 +221,9 @@ const BannerList = () => {
     fd.append("isActive", isActive);
     if (fileRef.current?.files?.[0]) {
       fd.append("image", fileRef.current.files[0]);
+    }
+    if (bgFileRef.current?.files?.[0]) {
+      fd.append("bgMedia", bgFileRef.current.files[0]);
     }
     try {
       if (editing) {
@@ -79,6 +247,7 @@ const BannerList = () => {
       fetchBanners();
     } catch (err) {
       console.error(err);
+      alert(err?.response?.data?.message || "Failed to delete banner");
     }
   };
 
@@ -87,6 +256,8 @@ const BannerList = () => {
       <div style={{ fontSize: 24, fontWeight: 600, marginBottom: 4, color: "#2A2A2A" }}>
         Banners
       </div>
+
+      <HeaderBgSection />
 
       <div className="card">
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
@@ -121,11 +292,16 @@ const BannerList = () => {
                   background: "#fff",
                 }}
               >
-                {b.imageUrl && (
+                {(b.image || b.imageUrl) && (
                   <img
-                    src={b.imageUrl}
+                    src={b.image || b.imageUrl}
                     alt={b.title}
-                    style={{ width: "100%", height: 160, objectFit: "cover" }}
+                    style={{
+                      width: "100%",
+                      height: 160,
+                      objectFit: "contain",
+                      background: "#f7f7f7",
+                    }}
                   />
                 )}
                 <div style={{ padding: 14 }}>
@@ -135,6 +311,11 @@ const BannerList = () => {
                   <span className={`badge ${b.isActive ? "badge-green" : "badge-grey"}`}>
                     {b.isActive ? "Active" : "Inactive"}
                   </span>
+                  {b.bgMedia && (
+                    <span className="badge badge-grey" style={{ marginLeft: 6 }}>
+                      BG: {b.bgMediaType || "image"}
+                    </span>
+                  )}
                   <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                     <button className="btn btn-outline btn-sm" onClick={() => openEdit(b)}>
                       Edit
@@ -182,7 +363,72 @@ const BannerList = () => {
               </div>
               <div>
                 <label className="form-label">Image</label>
-                <input type="file" accept="image/*" ref={fileRef} />
+                <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>
+                  Slide ke left side dikhta hai. Recommended: <b>420 × 370 px</b>,
+                  transparent PNG best rahega.
+                </div>
+                <input type="file" accept="image/*" ref={fileRef} onChange={handleFileChange} />
+                {preview && (
+                  <img
+                    src={preview}
+                    alt="Banner preview"
+                    style={{
+                      width: "100%",
+                      maxHeight: 300,
+                      objectFit: "contain",
+                      background: "#f7f7f7",
+                      borderRadius: 8,
+                      marginTop: 10,
+                      border: "1px solid #eee",
+                    }}
+                  />
+                )}
+              </div>
+              <div>
+                <label className="form-label">
+                  Background (image or video, optional)
+                </label>
+                <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>
+                  App me banner slide ke peeche full-size dikhega. Recommended:{" "}
+                  <b>1080 × 330 px</b>. Video ho to 5-10 sec, compressed.
+                </div>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  ref={bgFileRef}
+                  onChange={handleBgFileChange}
+                />
+                {bgPreview &&
+                  (bgPreviewType === "video" ? (
+                    <video
+                      src={bgPreview}
+                      controls
+                      muted
+                      loop
+                      style={{
+                        width: "100%",
+                        maxHeight: 300,
+                        background: "#f7f7f7",
+                        borderRadius: 8,
+                        marginTop: 10,
+                        border: "1px solid #eee",
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={bgPreview}
+                      alt="Background preview"
+                      style={{
+                        width: "100%",
+                        maxHeight: 300,
+                        objectFit: "contain",
+                        background: "#f7f7f7",
+                        borderRadius: 8,
+                        marginTop: 10,
+                        border: "1px solid #eee",
+                      }}
+                    />
+                  ))}
               </div>
               <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#444" }}>
                 <input

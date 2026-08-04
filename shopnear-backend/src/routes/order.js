@@ -203,6 +203,15 @@ router.post(
   ResponseMiddleware
 );
 
+// Assign delivery agent (shop servant) to shipped order
+router.put(
+  "/seller/assign-agent",
+  AuthMiddleware().verifySellerToken,
+  AdminValidator().validateAssignAgent,
+  ErrorHandlerMiddleware(OrderController.assignDeliveryAgent),
+  ResponseMiddleware
+);
+
 // Update Tracking Information
 router.put(
   "/seller/update-tracking",

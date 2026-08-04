@@ -361,6 +361,14 @@ module.exports = () => {
         sellerOrderStatus: order.sellerOrderStatus,
         paymentStatus: order.paymentStatus,
         paymentMode: order.paymentMode,
+        // Assigned shop delivery agent — tracking screen par customer isse call karta hai
+        deliveryAgent: order.deliveryAgent?.agentId
+          ? {
+              name: order.deliveryAgent.name,
+              mobile: order.deliveryAgent.mobile,
+              assignedAt: order.deliveryAgent.assignedAt,
+            }
+          : null,
         trackingNumber: order.trackingNumber,
         estimatedDeliveryDate: order.estimatedDeliveryDate,
         actualDeliveryDate: order.actualDeliveryDate,

@@ -167,6 +167,24 @@ export const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: px(12),
     },
+    // Admin se aaya poore header ka background (image/video) — header cover karta hai.
+    // width/height explicit hain kyunki static (require) images par RN intrinsic
+    // size laga deta hai jo left/right/top/bottom ko override kar deta hai
+    headerBgMedia: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width: '100%',
+        height: '100%',
+    },
+    // Admin se aaya slide ka background (image/video) — poori slide cover karta hai
+    bannerBgMedia: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width: '100%',
+        height: '100%',
+    },
     bannerImage: {
         width: px(140),
         height: px(122),

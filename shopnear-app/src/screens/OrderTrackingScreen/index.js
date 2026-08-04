@@ -95,14 +95,19 @@ const OrderTrackingScreen = ({ navigation, route }) => {
     return () => clearInterval(t);
   }, [orderId, isFinal]);
 
-  // Delivery partner ki jagah abhi shop hi contact point hai
+  // Seller ne delivery agent assign kiya ho to wahi contact point hai,
+  // warna fallback me shop se hi baat hoti hai
   const seller = order?.products?.find((p) => p.seller?.shopName)?.seller;
+  const agent = order?.deliveryAgent?.name ? order.deliveryAgent : null;
+  const contactName = agent?.name || seller?.shopName || 'Delivery Partner';
+  const contactRole = agent ? 'Delivery Agent' : seller?.shopName ? 'Seller' : 'Delivery boy';
+  const contactMobile = agent?.mobile || seller?.mobile;
   const handleCall = () => {
-    if (!seller?.mobile) {
-      showToast('Shop ka number available nahi hai', 'error');
+    if (!contactMobile) {
+      showToast('Contact number available nahi hai', 'error');
       return;
     }
-    Linking.openURL(`tel:${seller.mobile}`).catch(() => {});
+    Linking.openURL(`tel:${contactMobile}`).catch(() => {});
   };
 
   const address = order?.deliveryAddress;
@@ -192,11 +197,9 @@ const OrderTrackingScreen = ({ navigation, route }) => {
               </View>
               <View style={styles.partnerInfo}>
                 <Text style={styles.partnerName} numberOfLines={1}>
-                  {seller?.shopName || 'Delivery Partner'}
+                  {contactName}
                 </Text>
-                <Text style={styles.partnerRole}>
-                  {seller?.shopName ? 'Seller' : 'Delivery boy'}
-                </Text>
+                <Text style={styles.partnerRole}>{contactRole}</Text>
               </View>
               <TouchableOpacity
                 onPress={handleCall}

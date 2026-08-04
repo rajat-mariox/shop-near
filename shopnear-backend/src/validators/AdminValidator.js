@@ -673,6 +673,38 @@ module.exports = () => {
     validate(v, res, next, req);
   };
 
+  const validateCreateAgent = async (req, res, next) => {
+    const v = new Validator(req.body, {
+      name: validations.general.requiredString,
+      mobile: "required|string|minLength:10|maxLength:15",
+      vehicleNumber: "string|maxLength:20",
+      notes: "string|maxLength:200",
+    });
+
+    validate(v, res, next, req);
+  };
+
+  const validateUpdateAgent = async (req, res, next) => {
+    const v = new Validator(req.body, {
+      name: "string|minLength:1",
+      mobile: "string|minLength:10|maxLength:15",
+      vehicleNumber: "string|maxLength:20",
+      notes: "string|maxLength:200",
+      isActive: "boolean",
+    });
+
+    validate(v, res, next, req);
+  };
+
+  const validateAssignAgent = async (req, res, next) => {
+    const v = new Validator(req.body, {
+      orderId: validations.general.requiredString,
+      agentId: validations.general.requiredString,
+    });
+
+    validate(v, res, next, req);
+  };
+
   const validateSellerAction = async (req, res, next) => {
     // sellerId is injected by verifySellerToken as an ObjectId — do not validate it here
     const v = new Validator(req.body, {
@@ -859,6 +891,9 @@ module.exports = () => {
     validateSellerVerifyDeliveryOtp,
     validateVerifyDeliveryOtp,
     validateUpdateTracking,
+    validateCreateAgent,
+    validateUpdateAgent,
+    validateAssignAgent,
     validateCreateCoupon,
     validateUpdateCoupon,
     validateCouponId,

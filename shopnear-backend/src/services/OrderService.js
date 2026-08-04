@@ -471,7 +471,7 @@ module.exports = () => {
   const getOrderTracking = (orderId, userId) => {
     return new Promise(function (resolve, reject) {
       let orm = UserOrders.findOne({ orderId, userId }).select(
-        "orderId status sellerOrderStatus trackingNumber estimatedDeliveryDate actualDeliveryDate createdAt updatedAt"
+        "orderId status sellerOrderStatus deliveryAgent trackingNumber estimatedDeliveryDate actualDeliveryDate createdAt updatedAt"
       );
 
       orm.then(resolve).catch(reject);
@@ -560,6 +560,30 @@ module.exports = () => {
         {
           trackingNumber: trackingData.trackingNumber,
           estimatedDeliveryDate: trackingData.estimatedDeliveryDate,
+        },
+        { new: true }
+      );
+
+      orm.then(resolve).catch(reject);
+    });
+  };
+
+  /**
+   * Assign Delivery Agent (shop servant) to order
+   * Snapshot (name/mobile) order me save hota hai taaki agent baad me
+   * edit/delete ho to bhi customer ko sahi details dikhein
+   */
+  const assignDeliveryAgent = (orderId, sellerId, agent) => {
+    return new Promise(function (resolve, reject) {
+      let orm = UserOrders.findOneAndUpdate(
+        { orderId, "products.sellerId": sellerId },
+        {
+          deliveryAgent: {
+            agentId: agent._id,
+            name: agent.name,
+            mobile: agent.mobile,
+            assignedAt: new Date(),
+          },
         },
         { new: true }
       );
@@ -769,6 +793,7 @@ module.exports = () => {
     getOrderTracking,
     getSellerOrderStats,
     updateTracking,
+    assignDeliveryAgent,
     getAllOrders,
     countAllOrders,
     applyOrUpdateCoupon,

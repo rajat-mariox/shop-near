@@ -35,6 +35,18 @@ app.use("/", (req, res) => {
   res.send("Hello from main");
 });
 
+// Account deletion purge job (Play Store policy):
+// 7-din grace period khatam hone wale accounts permanently delete hote hain.
+// Startup ke thodi der baad + har 12 ghante mein chalta hai.
+const AccountDeletionService = require("./src/services/AccountDeletionService");
+const runPurgeJob = () => {
+  AccountDeletionService()
+    .purgeExpiredAccounts()
+    .catch((err) => console.error("Account purge job failed:", err));
+};
+setTimeout(runPurgeJob, 30 * 1000);
+setInterval(runPurgeJob, 12 * 60 * 60 * 1000);
+
 // ✅ Start the server
 app.listen(PORT, () => {
   console.log("service listening on port " + PORT);

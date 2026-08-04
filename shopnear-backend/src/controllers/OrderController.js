@@ -1,4 +1,5 @@
 const UserOrders = require("../models/UserOrders");
+const DeliveryAgent = require("../models/DeliveryAgent");
 const Wishlist = require("../models/Wishlist");
 const Product = require("../models/Product");
 const OrderService = require("../services/OrderService");
@@ -807,6 +808,58 @@ module.exports = () => {
   };
 
   /**
+   * Assign Delivery Agent to Order (Seller)
+   * Shipped order par shop ka servant/delivery agent assign hota hai —
+   * customer phir directly agent se connect karta hai
+   */
+  const assignDeliveryAgent = async (req, res, next) => {
+    try {
+      console.log("OrderController => assignDeliveryAgent");
+      const { sellerId, orderId, agentId } = req.body;
+
+      const agent = await DeliveryAgent.findOne({
+        _id: new ObjectId(agentId),
+        sellerId: new ObjectId(sellerId),
+      });
+
+      if (!agent) {
+        req.rCode = 5;
+        req.msg = "agent_not_found";
+        req.rData = {};
+        return next();
+      }
+
+      if (!agent.isActive) {
+        req.rCode = 5;
+        req.msg = "agent_inactive";
+        req.rData = {};
+        return next();
+      }
+
+      let order = await OrderService().assignDeliveryAgent(
+        orderId,
+        new ObjectId(sellerId),
+        agent
+      );
+
+      if (!order) {
+        req.rCode = 5;
+        req.msg = "order_not_found";
+        req.rData = {};
+        return next();
+      }
+
+      req.msg = "agent_assigned";
+      req.rData = order;
+      next();
+    } catch (e) {
+      req.rCode = 0;
+      req.msg = e.message;
+      next();
+    }
+  };
+
+  /**
    * Seller Accept Order
    */
   const sellerAcceptOrder = async (req, res, next) => {
@@ -949,5 +1002,6 @@ module.exports = () => {
     getSellerOrderStats,
     getSellerCustomers,
     updateTracking,
+    assignDeliveryAgent,
   };
 };

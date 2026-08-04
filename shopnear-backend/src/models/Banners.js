@@ -13,6 +13,16 @@ const BannersSchema = new Schema(
       type: String,
       required: [true, "image is required!"],
     },
+    // Home screen par banner slide ka background — admin se aata hai
+    bgMedia: {
+      type: String,
+      default: "",
+    },
+    bgMediaType: {
+      type: String,
+      enum: ["image", "video", ""],
+      default: "",
+    },
     rank: {
       type: Number,
       default: 0,

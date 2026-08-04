@@ -84,3 +84,18 @@ export const verifySellerDeliveryOtp = (orderId, otp) =>
 
 export const updateTracking = (orderId, trackingData) =>
   client.put("/order/seller/update-tracking", { orderId, ...trackingData });
+
+/* ============ DELIVERY AGENTS ============ */
+export const getDeliveryAgents = () => client.get("/seller/agents");
+
+export const createDeliveryAgent = (data) =>
+  client.post("/seller/agents", data);
+
+export const updateDeliveryAgent = (id, data) =>
+  client.put(`/seller/agents/${id}`, data);
+
+export const deleteDeliveryAgent = (id) =>
+  client.delete(`/seller/agents/${id}`);
+
+export const assignDeliveryAgent = (orderId, agentId) =>
+  client.put("/order/seller/assign-agent", { orderId, agentId });

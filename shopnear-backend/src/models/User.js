@@ -53,6 +53,17 @@ const UserSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    // Account deletion (Play Store policy): 7 din ka grace period,
+    // login karne par recover, warna cron permanently delete kar deta hai
+    deletionRequestedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    deletionReason: {
+      type: String,
+      default: "",
+    },
     notificationAllowed: {
       type: Boolean,
       default: true,

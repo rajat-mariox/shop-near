@@ -1,8 +1,8 @@
 import { Vector } from '../assets/vector/vector.icon';
 
 export const AppImages = {
-  LOGO: require('../assets/images/logo.png'),
-  LOGO_2: require('../assets/images/logo-2.png'),
+  LOGO: require('../assets/images/aaspass_logo.png'),
+  LOGO_2: require('../assets/images/aaspass_logo.png'),
   BG_IMAGE: require('../assets/images/bg-image.png'),
   PROFILE: require('../assets/images/profile.jpeg'),
   CLEAN: require('../assets/images/clean.jpg'),
@@ -46,7 +46,7 @@ export const AppImages = {
   camera: require('../assets/images/camera.png'),
   mic: require('../assets/images/mic.png'),
   // Figma design se export ki gayi assets
-  headerBg: require('../assets/images/figma_header_bg.png'),
+  headerBg: require('../assets/images/figma_header_bg.jpg'),
   headerLights: require('../assets/images/figma_lights.png'),
   headerFence: require('../assets/images/figma_fence.png'),
   promo1: require('../assets/images/promo1.png'),
