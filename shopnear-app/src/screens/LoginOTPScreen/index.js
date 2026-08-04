@@ -14,7 +14,7 @@ import { Colors } from '../../themes/Colors';
 import { moderateScale } from '../../utils/responsive';
 import NumericKeypad from '../../components/NumericKeypad';
 import { styles } from './styles';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API_BASE_URL } from '../../constants/api';
 import { API_ENDPOINTS } from '../../constants/api.endpoint';
 import { setTokenStorage } from '../../utils/tokenStorage';
@@ -24,6 +24,7 @@ const RESEND_SECONDS = 30;
 
 const LoginScreen = (props) => {
   const navigation = props.navigation
+  const insets = useSafeAreaInsets();
   const [OTPView, setOTPView] = useState(false)
   const [mobileNum, setMobileNum] = useState('')
   const [txnId, setTxnId] = useState('');
@@ -127,6 +128,10 @@ const LoginScreen = (props) => {
         if (data.data && data.data.token) {
           await setTokenStorage(data.data.token);
         }
+        // Deletion grace period (7 din) ke andar login = account recover
+        if (data.data && data.data.accountRecovered) {
+          showToast('Welcome back! Your account has been recovered.', 'success');
+        }
         await askLocationPermission();
         navigation.navigate('Home');
       } else {
@@ -196,6 +201,7 @@ const LoginScreen = (props) => {
 
   return (
     <SafeAreaView
+      edges={['top', 'left', 'right']}
       style={styles.mainContainer}>
       <StatusBar backgroundColor="transparent" translucent barStyle="dark-content" />
 
@@ -291,7 +297,7 @@ const LoginScreen = (props) => {
       {keypadVisible ? (
         <NumericKeypad onKeyPress={OTPView ? handleOtpKeyPress : handleMobileKeyPress} />
       ) : (
-        <View style={styles.keypadPlaceholder} />
+        <View style={[styles.keypadPlaceholder, { marginBottom: insets.bottom }]} />
       )}
     </SafeAreaView>
   );

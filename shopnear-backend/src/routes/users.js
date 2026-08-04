@@ -31,6 +31,16 @@ userRouter.put(
 );
 
 /**
+ * Account deletion (Play Store policy) — 7 day grace period ke saath
+ */
+userRouter.post(
+  "/delete-account",
+  AuthMiddleware().verifyUserToken,
+  ErrorHandlerMiddleware(UserController().deleteAccount),
+  ResponseMiddleware
+);
+
+/**
  * Address
  */
 userRouter.post(

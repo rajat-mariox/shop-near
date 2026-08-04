@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from './styles';
 
 const KEY_ROWS = [
@@ -11,8 +12,11 @@ const KEY_ROWS = [
 ];
 
 const NumericKeypad = ({ onKeyPress }) => {
+  // Keypad ka grey bg gesture-bar area tak jaata hai, isliye bottom inset
+  // yahin paddingBottom me jodte hain (screen SafeAreaView bottom edge nahi leti)
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: styles.container.paddingBottom + insets.bottom }]}>
       {KEY_ROWS.map((row, rowIndex) => (
         <View key={rowIndex} style={styles.row}>
           {row.map((key, keyIndex) => {
@@ -23,7 +27,7 @@ const NumericKeypad = ({ onKeyPress }) => {
               return (
                 <TouchableOpacity
                   key={keyIndex}
-                  style={styles.key}
+                  style={[styles.key, styles.blankKey]}
                   onPress={() => onKeyPress('backspace')}
                 >
                   <Icon name="backspace-outline" size={22} color="#2A2A2A" />

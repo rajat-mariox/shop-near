@@ -121,6 +121,16 @@ const UserOrdersSchema = new Schema(
       },
     ],
 
+    // Delivery Agent (shop ka servant/delivery boy) — seller shipped par assign karta hai
+    // Snapshot (name/mobile) isliye save hota hai taaki agent delete/edit ho jaye
+    // to bhi purane order me sahi details dikhe
+    deliveryAgent: {
+      agentId: { type: Schema.Types.ObjectId, ref: "DeliveryAgent" },
+      name: { type: String },
+      mobile: { type: String },
+      assignedAt: { type: Date },
+    },
+
     // Tracking Information
     trackingNumber: { type: String },
     estimatedDeliveryDate: { type: Date },

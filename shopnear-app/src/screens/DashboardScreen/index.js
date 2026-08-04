@@ -13,6 +13,7 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import Feather from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import Video, { ViewType } from 'react-native-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppImages } from '../../constants/app.image';
@@ -23,6 +24,77 @@ import { imageSource } from '../../utils/media';
 import { getTokenStorage } from '../../utils/tokenStorage';
 import { fetchUserProfile } from '../../service/userProfile';
 import { fetchHomeScreen } from '../../service/homeService';
+
+// Header ka wrapper — admin se aaya background (image/video) ya default asset.
+// Image ke liye ImageBackground zaroori hai: content-sized parent me percentage/
+// absolute-fill wali Image banner load hone ke BAAD wali badi height nahi leti
+// (neeche white patti reh jati thi) — ImageBackground parent ke saath grow karta hai.
+const HeaderContainer = ({ headerBg, style, children }) => {
+  const [failed, setFailed] = useState(false);
+  const useAdminBg = !!headerBg?.url && !failed;
+
+  if (useAdminBg && headerBg.type === 'video') {
+    return (
+      <View style={style}>
+        <Video
+          source={{ uri: headerBg.url }}
+          style={styles.headerBgMedia}
+          resizeMode="cover"
+          muted
+          repeat
+          playInBackground={false}
+          disableFocus
+          viewType={ViewType.TEXTURE}
+          onError={() => setFailed(true)}
+        />
+        {children}
+      </View>
+    );
+  }
+  return (
+    <ImageBackground
+      source={useAdminBg ? { uri: headerBg.url } : AppImages.headerBg}
+      style={style}
+      onError={useAdminBg ? () => setFailed(true) : undefined}>
+      {children}
+    </ImageBackground>
+  );
+};
+
+// Banner slide ka admin-controlled background (image/video). Video fail ho
+// (URL toota, network nahi) to black box ki jagah default fence design dikhta hai.
+const BannerSlideBg = ({ banner }) => {
+  const [failed, setFailed] = useState(false);
+
+  if (!banner.bgMedia || failed) {
+    return <Image source={AppImages.headerFence} style={styles.bannerFence} />;
+  }
+  if (banner.bgMediaType === 'video') {
+    return (
+      <Video
+        source={{ uri: banner.bgMedia }}
+        style={styles.bannerBgMedia}
+        resizeMode="cover"
+        muted
+        repeat
+        playInBackground={false}
+        disableFocus
+        // TextureView — SurfaceView screenshots me black aata hai aur
+        // rounded/clipped layouts ke saath sahi behave nahi karta
+        viewType={ViewType.TEXTURE}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return (
+    <Image
+      source={imageSource(banner.bgMedia)}
+      style={styles.bannerBgMedia}
+      resizeMode="cover"
+      onError={() => setFailed(true)}
+    />
+  );
+};
 
 // Offer card ka gradient. react-native-svg pehle se project me hai, isliye
 // koi nayi gradient library add karne ki zaroorat nahi padi.
@@ -88,8 +160,8 @@ const Dashboard = (props) => {
   const deliveryLocation = homeData?.delivery?.location || userProfile?.fullName || '';
 
   const renderHeader = () => (
-    <ImageBackground
-      source={AppImages.headerBg}
+    <HeaderContainer
+      headerBg={homeData?.headerBg}
       style={[styles.header, { paddingTop: insets.top + HEADER_TOP_PADDING }]}>
       {/* Design ke festive string lights, status bar ke theek neeche */}
       <Image
@@ -145,8 +217,9 @@ const Dashboard = (props) => {
         <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
           {homeData.banners.map((banner, idx) => (
             <View key={banner._id || idx} style={styles.bannerSlide}>
-              {/* Design me banner ke peeche halka wooden fence overlay hai */}
-              <Image source={AppImages.headerFence} style={styles.bannerFence} />
+              {/* Admin se aaya background (image/video) slide ke peeche full-size
+                  lagta hai; na ho (ya load fail ho) to default fence design */}
+              <BannerSlideBg banner={banner} />
               <Image
                 source={imageSource(banner.image, AppImages.girl)}
                 style={styles.bannerImage}
@@ -176,7 +249,7 @@ const Dashboard = (props) => {
           ))}
         </ScrollView>
       )}
-    </ImageBackground>
+    </HeaderContainer>
   );
 
   const renderCategories = () => {

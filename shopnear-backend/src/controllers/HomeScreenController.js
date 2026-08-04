@@ -25,6 +25,9 @@ module.exports = () => {
         // Wallet balance - user ke record se
         wallet: homeData.wallet,
 
+        // Home header background (admin se set, image/video) - null = app default
+        headerBg: homeData.headerBg,
+
         // Delivery Info - Dynamic from database
         delivery: homeData.delivery,
 

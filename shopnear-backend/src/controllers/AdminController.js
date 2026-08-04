@@ -376,6 +376,16 @@ module.exports = () => {
       bannerData.image = uploadRes.images;
     }
 
+    // Banner slide ka background — image ya video, type mimetype se
+    if (req.files && req.files.bgMedia) {
+      const file = req.files.bgMedia;
+      const uploadRes = await fileUploadService.uploadFileToAws(file);
+      bannerData.bgMedia = uploadRes.images;
+      bannerData.bgMediaType = file.mimetype.startsWith("video/")
+        ? "video"
+        : "image";
+    }
+
     const Banners = await BannersService().addBanners(bannerData);
 
     req.rData = Banners;
@@ -394,6 +404,16 @@ module.exports = () => {
       const uploadRes = await fileUploadService.uploadFileToAws(file);
       // Assuming uploadRes.images contains the URL string
       bannerData.image = uploadRes.images;
+    }
+
+    // Banner slide ka background — image ya video, type mimetype se
+    if (req.files && req.files.bgMedia) {
+      const file = req.files.bgMedia;
+      const uploadRes = await fileUploadService.uploadFileToAws(file);
+      bannerData.bgMedia = uploadRes.images;
+      bannerData.bgMediaType = file.mimetype.startsWith("video/")
+        ? "video"
+        : "image";
     }
 
     await BannersService().updateBanners(id, bannerData);
@@ -447,9 +467,9 @@ module.exports = () => {
 
   const deleteBanner = async (req, res, next) => {
     console.log("AdminController => deleteBanner");
-    let { bannerId } = req.body;
+    const id = req.params.id || req.body.bannerId;
 
-    await BannersService().deleteBanners(bannerId);
+    await BannersService().deleteBanners(id);
 
     req.msg = "success";
     next();
@@ -596,6 +616,58 @@ module.exports = () => {
   /**
    * Settings
    */
+
+  /**
+   * Home header background (image/video) — app ke home header
+   * (delivery + search + banner area) ke peeche dikhta hai
+   */
+  const getHomeHeaderBg = async (req, res, next) => {
+    console.log("AdminController => getHomeHeaderBg");
+    const Settings = await SettingsService().fetchByQuery({});
+
+    req.rData = {
+      homeHeaderBg: Settings?.homeHeaderBg || "",
+      homeHeaderBgType: Settings?.homeHeaderBgType || "",
+    };
+    req.msg = "success";
+    next();
+  };
+
+  const updateHomeHeaderBg = async (req, res, next) => {
+    console.log("AdminController => updateHomeHeaderBg");
+
+    let homeHeaderBg = "";
+    let homeHeaderBgType = "";
+
+    // remove=true bhejne par bg hat jata hai, app default par wapas aa jati hai
+    if (!req.body.remove) {
+      if (!req.files || !req.files.bgMedia) {
+        return res
+          .status(400)
+          .send({ code: 0, message: "bgMedia file is required!", data: {} });
+      }
+      const file = req.files.bgMedia;
+      const uploadRes = await fileUploadService.uploadFileToAws(file);
+      homeHeaderBg = uploadRes.images;
+      homeHeaderBgType = file.mimetype.startsWith("video/")
+        ? "video"
+        : "image";
+    }
+
+    const Settings = await SettingsService().fetchByQuery({});
+    if (Settings) {
+      await SettingsService().updateSettings(Settings._id, {
+        homeHeaderBg,
+        homeHeaderBgType,
+      });
+    } else {
+      await SettingsService().addSettings({ homeHeaderBg, homeHeaderBgType });
+    }
+
+    req.rData = { homeHeaderBg, homeHeaderBgType };
+    req.msg = "success";
+    next();
+  };
 
   const addTermAndCondition = async (req, res, next) => {
     console.log("AdminController => addTermAndCondition");
@@ -1444,6 +1516,8 @@ module.exports = () => {
     deleteBanner,
     getBannerDetail,
     activateDeactivateBanner,
+    getHomeHeaderBg,
+    updateHomeHeaderBg,
     /*
      * Setting
      */

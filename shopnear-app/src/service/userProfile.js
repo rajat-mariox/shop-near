@@ -25,6 +25,38 @@ export const fetchUserProfile = async () => {
     return { success: false, message: error.message || 'Network error' };
   }
 };
+
+/**
+ * Account deletion request (Play Store policy).
+ * Backend 7 din ka grace period rakhta hai — is beech login karne par
+ * account recover ho jata hai, warna permanently delete.
+ * @param {string} reason - user ka feedback ki delete kyun kar raha hai
+ */
+export const deleteAccount = async (reason) => {
+  try {
+    const token = await getTokenStorage();
+    if (!token) {
+      throw new Error('No auth token found');
+    }
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.USER_DELETE_ACCOUNT}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ reason }),
+    });
+    const data = await response.json();
+    if (data.code === 1) {
+      return { success: true, message: data.message || 'Account deletion scheduled.' };
+    } else {
+      return { success: false, message: data.message || 'Failed to delete account.' };
+    }
+  } catch (error) {
+    return { success: false, message: error.message || 'Network error' };
+  }
+};
+
 /**
  * Update user profile with form data.
  * @param {Object} profileData - { fullName, email, gender, longitude, latitude, ... }

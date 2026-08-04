@@ -4,7 +4,6 @@ import useAuthStore from "../../store/authStore";
 import useProductStore from "../../store/productStore";
 import useOrderStore from "../../store/orderStore";
 
-import logo from "../../assets/figma/logo.png";
 import fallbackLogo from "../../assets/Images/newLogo.jpeg";
 import icClose from "../../assets/figma/ic-close-panel.svg";
 import icHome from "../../assets/figma/ic-home.svg";
@@ -124,36 +123,18 @@ const Sidebar = ({ onNavigate }) => {
         padding: "32px 16px",
       }}
     >
-      {/* Logo */}
+      {/* Top: Company card + close button (ShopNear logo ki jagah) */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 8px",
+          gap: 8,
         }}
       >
-        <img
-          src={logo}
-          alt="ShopNear"
-          style={{ height: 31, width: "auto", maxWidth: 160, objectFit: "contain" }}
-          onError={(e) => {
-            e.currentTarget.src = fallbackLogo;
-          }}
-        />
-        <img
-          src={icClose}
-          alt="Close panel"
-          onClick={() => onNavigate?.()}
-          style={{ width: 22, height: 22, cursor: "pointer" }}
-        />
-      </div>
-
-      {/* Menu */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 32, flex: 1, minHeight: 0 }}>
-        {/* Company card */}
         <div
           style={{
+            flex: 1,
+            minWidth: 0,
             display: "flex",
             alignItems: "center",
             gap: 8,
@@ -190,7 +171,16 @@ const Sidebar = ({ onNavigate }) => {
             </div>
           </div>
         </div>
+        <img
+          src={icClose}
+          alt="Close panel"
+          onClick={() => onNavigate?.()}
+          style={{ width: 22, height: 22, cursor: "pointer", flexShrink: 0 }}
+        />
+      </div>
 
+      {/* Menu */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 32, flex: 1, minHeight: 0 }}>
         {/* GENERAL */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <SectionTitle>GENERAL</SectionTitle>
@@ -265,6 +255,13 @@ const Sidebar = ({ onNavigate }) => {
             label="Customers"
             active={isActive("/customer")}
             onClick={() => navigate("/customer")}
+          />
+          <MenuItem
+            icon={icUsers}
+            iconActive={icUsersActive}
+            label="Delivery Agents"
+            active={isActive("/agents")}
+            onClick={() => navigate("/agents")}
           />
           <MenuItem
             icon={icChart}

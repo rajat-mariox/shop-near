@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const SellerAuthController = require("../controllers/SellerAuthController");
 const SellerController = require("../controllers/SellerController");
+const DeliveryAgentController = require("../controllers/DeliveryAgentController");
 const ErrorHandlerMiddleware = require("../middlewares/ErrorHandlerMiddleware");
 const ResponseMiddleware = require("../middlewares/ResponseMiddleware");
 const AuthMiddleware = require("../middlewares/AuthMiddleware");
@@ -120,6 +121,44 @@ router.delete(
   AuthMiddleware().verifySellerToken,
   AdminValidator().validateSellerProductId,
   ErrorHandlerMiddleware(SellerController().deleteSellerProduct),
+  ResponseMiddleware,
+);
+
+/**
+ * --------------------- DELIVERY AGENTS (shop servants) ---------------------
+ */
+
+// List agents
+router.get(
+  "/agents",
+  AuthMiddleware().verifySellerToken,
+  ErrorHandlerMiddleware(DeliveryAgentController().listAgents),
+  ResponseMiddleware,
+);
+
+// Add agent
+router.post(
+  "/agents",
+  AuthMiddleware().verifySellerToken,
+  AdminValidator().validateCreateAgent,
+  ErrorHandlerMiddleware(DeliveryAgentController().createAgent),
+  ResponseMiddleware,
+);
+
+// Edit agent (details / active-inactive)
+router.put(
+  "/agents/:id",
+  AuthMiddleware().verifySellerToken,
+  AdminValidator().validateUpdateAgent,
+  ErrorHandlerMiddleware(DeliveryAgentController().updateAgent),
+  ResponseMiddleware,
+);
+
+// Delete agent
+router.delete(
+  "/agents/:id",
+  AuthMiddleware().verifySellerToken,
+  ErrorHandlerMiddleware(DeliveryAgentController().deleteAgent),
   ResponseMiddleware,
 );
 

@@ -6,8 +6,10 @@ import {
   acceptOrder,
   rejectOrder,
   updateOrderStatus,
-  updateTracking,
   verifySellerDeliveryOtp,
+  getDeliveryAgents,
+  createDeliveryAgent,
+  assignDeliveryAgent,
 } from "../../api/sellerApi";
 
 import icSearch from "../../assets/figma/ic-search-input.svg";
@@ -180,7 +182,12 @@ const Transaction = () => {
   const [actionModal, setActionModal] = useState(null); // { orderId, type }
   const [rejectReason, setRejectReason] = useState("");
   const [statusUpdate, setStatusUpdate] = useState("");
-  const [trackingInfo, setTrackingInfo] = useState({ trackingNumber: "", carrier: "", trackingUrl: "" });
+  // Assign Agent modal — shop ke delivery agents me se choose ya quick-add
+  const [agents, setAgents] = useState([]);
+  const [agentsLoading, setAgentsLoading] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState("");
+  const [quickAgent, setQuickAgent] = useState({ name: "", mobile: "" });
+  const [assigning, setAssigning] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
   const limit = 10;
@@ -252,10 +259,16 @@ const Transaction = () => {
   const handleStatusUpdate = async () => {
     if (!actionModal || !statusUpdate) return;
     try {
-      await updateOrderStatus(actionModal.orderId, statusUpdate);
+      const orderId = actionModal.orderId;
+      const wasShipped = statusUpdate === "shipped";
+      await updateOrderStatus(orderId, statusUpdate);
       setActionModal(null);
       setStatusUpdate("");
       fetchOrders();
+      // Shipped hote hi delivery agent assign karne ka modal khol do
+      if (wasShipped) {
+        openAssignAgentModal({ orderId, deliveryAgent: null });
+      }
     } catch (e) {
       alert(e.response?.data?.msg || "Failed to update status");
     }
@@ -280,16 +293,55 @@ const Transaction = () => {
     }
   };
 
-  const handleUpdateTracking = async () => {
-    if (!actionModal) return;
+  // Assign Agent modal kholte hi agents ki list load karo
+  const openAssignAgentModal = (order) => {
+    setSelectedAgentId(order.deliveryAgent?.agentId || "");
+    setQuickAgent({ name: "", mobile: "" });
+    setActionModal({ orderId: order.orderId, type: "assignAgent", order });
+    setAgentsLoading(true);
+    getDeliveryAgents()
+      .then((res) => {
+        const d = res.data?.rData || res.data?.data || res.data;
+        setAgents(d.agents || []);
+      })
+      .catch(() => setAgents([]))
+      .finally(() => setAgentsLoading(false));
+  };
+
+  const handleAssignAgent = async () => {
+    if (!actionModal || assigning) return;
     try {
-      await updateTracking(actionModal.orderId, trackingInfo);
+      setAssigning(true);
+      let agentId = selectedAgentId;
+
+      // Quick-add: naya agent banake usko hi assign kar do
+      if (!agentId && quickAgent.name.trim() && quickAgent.mobile.trim().length >= 10) {
+        const res = await createDeliveryAgent({
+          name: quickAgent.name.trim(),
+          mobile: quickAgent.mobile.trim(),
+        });
+        const created = res.data?.rData || res.data?.data || res.data;
+        agentId = created?._id;
+      }
+
+      if (!agentId) {
+        alert("Pehle agent select karein ya naya agent add karein");
+        return;
+      }
+
+      await assignDeliveryAgent(actionModal.orderId, agentId);
       setActionModal(null);
-      setTrackingInfo({ trackingNumber: "", carrier: "", trackingUrl: "" });
       fetchOrders();
-      alert("Tracking info updated!");
+      alert("Delivery agent assigned! Customer ko iski details dikhengi.");
     } catch (e) {
-      alert(e.response?.data?.msg || "Failed to update tracking");
+      const msg = e.response?.data?.msg || e.response?.data?.message || "";
+      alert(
+        msg === "agent_mobile_already_exists"
+          ? "Is mobile number ka agent pehle se added hai — list me se select karein"
+          : msg || "Failed to assign agent"
+      );
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -753,12 +805,15 @@ const Transaction = () => {
                           {sellerSt === "shipped" && (
                             <>
                               <button
-                                onClick={() =>
-                                  setActionModal({ orderId: order.orderId, type: "tracking" })
-                                }
+                                onClick={() => openAssignAgentModal(order)}
                                 style={actionChipStyle("#D2E8FF", "#2B6CB0")}
+                                title={
+                                  order.deliveryAgent?.name
+                                    ? `Assigned: ${order.deliveryAgent.name} (${order.deliveryAgent.mobile})`
+                                    : "Assign delivery agent"
+                                }
                               >
-                                Tracking
+                                {order.deliveryAgent?.name ? "✓ Agent" : "Assign Agent"}
                               </button>
                               <button
                                 onClick={() =>
@@ -1026,6 +1081,8 @@ const Transaction = () => {
             <p style={{ fontSize: 12, color: "#888", marginTop: -6, marginBottom: 14 }}>
               Order "Shipped" hone par customer ko tracking screen par delivery OTP milta hai.
               Delivery par wahi OTP "Complete" button se enter karke order delivered hota hai.
+              Shipped karte hi aap delivery agent bhi assign kar payenge — customer directly
+              agent se connect hoga.
             </p>
             <div style={{ display: "flex", gap: 10 }}>
               <button
@@ -1111,6 +1168,13 @@ const Transaction = () => {
               <strong>Grand Total:</strong> ₹
               {actionModal.order.grandTotal?.toLocaleString("en-IN")}
             </p>
+            {actionModal.order.deliveryAgent?.name && (
+              <p style={{ fontSize: 14, color: "#888" }}>
+                <strong>Delivery Agent:</strong>{" "}
+                {actionModal.order.deliveryAgent.name} (
+                {actionModal.order.deliveryAgent.mobile})
+              </p>
+            )}
             <h4 style={{ marginTop: 14, marginBottom: 8 }}>Products</h4>
             {actionModal.order.products?.map((p, i) => (
               <div
@@ -1268,7 +1332,7 @@ const Transaction = () => {
         </div>
       )}
 
-      {actionModal && actionModal.type === "tracking" && (
+      {actionModal && actionModal.type === "assignAgent" && (
         <div
           style={{
             position: "fixed",
@@ -1286,73 +1350,126 @@ const Transaction = () => {
               background: "#fff",
               borderRadius: 16,
               padding: 28,
-              minWidth: 360,
+              minWidth: 400,
+              maxWidth: 460,
               fontFamily: FONT,
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ marginBottom: 12, color: "#2A2A2A" }}>
-              Update Tracking Info
+              Assign Delivery Agent
             </h3>
-            <p style={{ fontSize: 14, color: "#888", marginBottom: 10 }}>
+            <p style={{ fontSize: 14, color: "#888", marginBottom: 6 }}>
               Order: <strong>{actionModal.orderId}</strong>
             </p>
-            <input
-              placeholder="Tracking Number"
-              value={trackingInfo.trackingNumber}
-              onChange={(e) =>
-                setTrackingInfo((t) => ({ ...t, trackingNumber: e.target.value }))
-              }
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                borderRadius: 8,
-                border: "1px solid #D1D1D1",
-                fontSize: 14,
-                marginBottom: 10,
-                fontFamily: FONT,
-                boxSizing: "border-box",
-              }}
-            />
-            <input
-              placeholder="Carrier (e.g., BlueDart, Delhivery)"
-              value={trackingInfo.carrier}
-              onChange={(e) =>
-                setTrackingInfo((t) => ({ ...t, carrier: e.target.value }))
-              }
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                borderRadius: 8,
-                border: "1px solid #D1D1D1",
-                fontSize: 14,
-                marginBottom: 10,
-                fontFamily: FONT,
-                boxSizing: "border-box",
-              }}
-            />
-            <input
-              placeholder="Tracking URL (optional)"
-              value={trackingInfo.trackingUrl}
-              onChange={(e) =>
-                setTrackingInfo((t) => ({ ...t, trackingUrl: e.target.value }))
-              }
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                borderRadius: 8,
-                border: "1px solid #D1D1D1",
-                fontSize: 14,
-                marginBottom: 14,
-                fontFamily: FONT,
-                boxSizing: "border-box",
-              }}
-            />
+            {actionModal.order?.deliveryAgent?.name && (
+              <p style={{ fontSize: 13, color: "#00B809", marginBottom: 10 }}>
+                Currently assigned: {actionModal.order.deliveryAgent.name} (
+                {actionModal.order.deliveryAgent.mobile})
+              </p>
+            )}
+            <p style={{ fontSize: 12, color: "#888", marginBottom: 12, lineHeight: 1.5 }}>
+              Jo agent ye order deliver karega usse assign karein — customer ko
+              tracking screen par agent ka naam aur number dikhega, aur wo
+              directly agent ko call karega.
+            </p>
+
+            {agentsLoading ? (
+              <p style={{ fontSize: 13, color: "#888" }}>Loading agents...</p>
+            ) : (
+              <>
+                <select
+                  value={selectedAgentId}
+                  onChange={(e) => setSelectedAgentId(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: 8,
+                    border: "1px solid #D1D1D1",
+                    fontSize: 14,
+                    marginBottom: 10,
+                    fontFamily: FONT,
+                  }}
+                >
+                  <option value="">Select agent</option>
+                  {agents
+                    .filter((a) => a.isActive)
+                    .map((a) => (
+                      <option key={a._id} value={a._id}>
+                        {a.name} — {a.mobile}
+                      </option>
+                    ))}
+                </select>
+
+                {!selectedAgentId && (
+                  <div
+                    style={{
+                      border: "1px dashed #D1D1D1",
+                      borderRadius: 8,
+                      padding: 12,
+                      marginBottom: 14,
+                    }}
+                  >
+                    <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>
+                      Ya naya agent add karke assign karein:
+                    </p>
+                    <input
+                      placeholder="Agent Name"
+                      value={quickAgent.name}
+                      onChange={(e) =>
+                        setQuickAgent((q) => ({ ...q, name: e.target.value }))
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        border: "1px solid #D1D1D1",
+                        fontSize: 14,
+                        marginBottom: 8,
+                        fontFamily: FONT,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <input
+                      placeholder="Agent Mobile Number"
+                      value={quickAgent.mobile}
+                      maxLength={15}
+                      onChange={(e) =>
+                        setQuickAgent((q) => ({
+                          ...q,
+                          mobile: e.target.value.replace(/[^\d+]/g, ""),
+                        }))
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        border: "1px solid #D1D1D1",
+                        fontSize: 14,
+                        fontFamily: FONT,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
             <div style={{ display: "flex", gap: 10 }}>
               <button
-                onClick={handleUpdateTracking}
+                onClick={handleAssignAgent}
+                disabled={
+                  assigning ||
+                  (!selectedAgentId &&
+                    !(quickAgent.name.trim() && quickAgent.mobile.trim().length >= 10))
+                }
                 style={{
-                  background: "#FF6051",
+                  background:
+                    !assigning &&
+                    (selectedAgentId ||
+                      (quickAgent.name.trim() && quickAgent.mobile.trim().length >= 10))
+                      ? "#FF6051"
+                      : "#ccc",
                   color: "#fff",
                   border: "none",
                   borderRadius: 8,
@@ -1362,7 +1479,7 @@ const Transaction = () => {
                   fontFamily: FONT,
                 }}
               >
-                Save Tracking
+                {assigning ? "Assigning..." : "Assign Agent"}
               </button>
               <button
                 onClick={() => setActionModal(null)}

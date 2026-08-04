@@ -1,4 +1,5 @@
 const UserService = require("../services/UserService");
+const AccountDeletionService = require("../services/AccountDeletionService");
 const helpers = require("../util/helpers.js");
 const redis = require("../util/redis.js");
 const { v4: uuidv4 } = require("uuid");
@@ -96,6 +97,29 @@ module.exports = () => {
           console.log("mobile_query=>>", mobile_query);
 
           let user = await UserService().fetchByQuery(mobile_query);
+          let accountRecovered = false;
+
+          // Account deletion grace period check (Play Store policy)
+          if (user && user.deletionRequestedAt) {
+            if (
+              AccountDeletionService().isGracePeriodExpired(
+                user.deletionRequestedAt
+              )
+            ) {
+              // 7 din ho gaye, cron se pehle hi login aa gaya —
+              // purana account abhi purge karo, neeche fresh user banega
+              await AccountDeletionService().purgeUser(user._id);
+              user = null;
+            } else {
+              // 7 din ke andar login = account recover
+              await UserService().updateUsers(user._id, {
+                deletionRequestedAt: null,
+                deletionReason: "",
+              });
+              accountRecovered = true;
+            }
+          }
+
           if (!user) {
             user = await UserService().addUsers({
               countryCode,
@@ -106,7 +130,7 @@ module.exports = () => {
           token = await helpers().createJWT({ userId: user._id });
           await UserService().updateUsers(user._id, { token });
 
-          req.rData = { token, userId: user._id };
+          req.rData = { token, userId: user._id, accountRecovered };
           req.msg = "otp_verified";
         } else {
           req.rCode = 0;

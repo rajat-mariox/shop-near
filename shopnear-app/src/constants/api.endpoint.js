@@ -4,6 +4,7 @@ export const API_ENDPOINTS = {
   AUTH_VERIFY_OTP: '/auth/verifyOtp',
   USER_ADDRESS: '/user/address',
   USER_PROFILE: '/user/profile',
+  USER_DELETE_ACCOUNT: '/user/delete-account',
   HOME_SCREEN: '/user/homeScreen',
   SELLER_LIST: '/user/sellers',
   SELLER_CATEGORIES: '/user/sellers',

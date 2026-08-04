@@ -175,6 +175,23 @@ adminRouter.delete(
 );
 
 /**
+ * Home header background (image/video)
+ */
+adminRouter.get(
+  "/home-header-bg",
+  AuthMiddleware().verifyAdminToken,
+  ErrorHandlerMiddleware(AdminController().getHomeHeaderBg),
+  ResponseMiddleware,
+);
+
+adminRouter.put(
+  "/home-header-bg",
+  AuthMiddleware().verifyAdminToken,
+  ErrorHandlerMiddleware(AdminController().updateHomeHeaderBg),
+  ResponseMiddleware,
+);
+
+/**
  * Brands
  */
 

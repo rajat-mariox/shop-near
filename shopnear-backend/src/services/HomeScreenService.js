@@ -7,6 +7,7 @@ const Rating = require("../models/Rating");
 const Product = require("../models/Product");
 const Category = require("../models/Catagory");
 const DeliverySettings = require("../models/DeliverySettings");
+const Settings = require("../models/Settings");
 const UserAddress = require("../models/UserAddress");
 const User = require("../models/User");
 const ObjectId = require("mongoose").Types.ObjectId;
@@ -25,7 +26,7 @@ module.exports = () => {
         // expireDate: { $gte: now },
       })
         .select(
-          "title subtitle image rank redirectType categoryId productId externalUrl"
+          "title subtitle image bgMedia bgMediaType rank redirectType categoryId productId externalUrl"
         )
         .sort({ rank: 1 })
         .limit(5);
@@ -263,6 +264,18 @@ module.exports = () => {
     return { balance: user.walletBalance || 0 };
   };
 
+  /**
+   * Admin ka set kiya hua header background (image/video); na ho to null —
+   * app apna bundled default dikhati hai
+   */
+  const getHeaderBg = async () => {
+    const settings = await Settings.findOne({}).select(
+      "homeHeaderBg homeHeaderBgType"
+    );
+    if (!settings || !settings.homeHeaderBg) return null;
+    return { url: settings.homeHeaderBg, type: settings.homeHeaderBgType };
+  };
+
   const getCompleteHomeScreenData = async (
     userLat = null,
     userLng = null,
@@ -279,6 +292,7 @@ module.exports = () => {
         delivery,
         userLocation,
         wallet,
+        headerBg,
       ] = await Promise.all([
         getActiveBanners(),
         getShopCategories(),
@@ -288,10 +302,12 @@ module.exports = () => {
         getDeliveryInfo(),
         getUserLocationLabel(userId),
         getWallet(userId),
+        getHeaderBg(),
       ]);
 
       return {
         wallet,
+        headerBg,
         delivery: { ...delivery, location: userLocation || delivery.location },
         banners,
         categories,

@@ -14,6 +14,14 @@ const SettingsSchema = new Schema(
       phone: { type: String, default: "" },
       address: { type: String, default: "" },
     },
+    // Home screen ke header (delivery + search + banner area) ka background —
+    // admin se image/video upload hota hai; khali ho to app apna default dikhati hai
+    homeHeaderBg: { type: String, default: "" },
+    homeHeaderBgType: {
+      type: String,
+      enum: ["image", "video", ""],
+      default: "",
+    },
   },
   { timestamps: true }
 );

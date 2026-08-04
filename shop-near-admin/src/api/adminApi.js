@@ -68,6 +68,13 @@ export const updateBanner = (id, formData) =>
     headers: { "Content-Type": "multipart/form-data" },
   });
 export const deleteBanner = (id) => client.delete(`/admin/banners/${id}`);
+export const getHomeHeaderBg = () => client.get("/admin/home-header-bg");
+export const updateHomeHeaderBg = (formData) =>
+  client.put("/admin/home-header-bg", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const removeHomeHeaderBg = () =>
+  client.put("/admin/home-header-bg", { remove: true });
 
 /* ============ BRANDS ============ */
 export const getBrands = (params) => client.get("/admin/brands", { params });
