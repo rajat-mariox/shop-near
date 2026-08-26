@@ -5,6 +5,7 @@ const User = require("../models/User");
 const UserAddress = require("../models/UserAddress");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const NotificationService = require("./NotificationService");
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -125,6 +126,8 @@ module.exports = () => {
       if (paymentMethod !== "online") {
         cart.isActive = false;
         await cart.save();
+        // COD order turant placed — online me payment verify ke baad notify hota hai
+        NotificationService().sendOrderStatusNotification(order, "pending");
       }
 
       req.rData = {
@@ -254,6 +257,11 @@ module.exports = () => {
       await Cart.updateOne(
         { userId: order.userId, isActive: true, isDeleted: false },
         { $set: { isActive: false } }
+      );
+
+      NotificationService().sendOrderStatusNotification(
+        order,
+        "payment_success"
       );
 
       req.rData = {

@@ -1,4 +1,5 @@
 const UserOrders = require("../models/UserOrders");
+const NotificationService = require("./NotificationService");
 var ObjectId = require("mongoose").Types.ObjectId;
 
 module.exports = () => {
@@ -154,6 +155,8 @@ module.exports = () => {
    */
   const updateOrderStatus = (orderId, sellerId, newStatus) => {
     return new Promise(function (resolve, reject) {
+      // Shipped par FCM notification me OTP bhi jata hai (SMS nahi)
+      let deliveryOtp = null;
       let orm = UserOrders.findOne({ orderId, "products.sellerId": sellerId });
 
       orm
@@ -181,11 +184,16 @@ module.exports = () => {
             ) {
               const helpers = require("../util/helpers")();
               order.sellerOrderStatus[sellerStatusIndex].otp =
-                helpers.generateOTP();
+                helpers.generateDeliveryOTP();
               order.sellerOrderStatus[sellerStatusIndex].otpExpires = null;
               order.sellerOrderStatus[sellerStatusIndex].otpVerified = false;
             }
           }
+
+          deliveryOtp =
+            newStatus === "shipped" && sellerStatusIndex >= 0
+              ? order.sellerOrderStatus[sellerStatusIndex].otp
+              : null;
 
           // Update main status if all sellers have same status or if specific conditions are met
           if (newStatus === "delivered") {
@@ -212,7 +220,23 @@ module.exports = () => {
             .populate("products.productId", "productName")
             .populate("products.sellerId", "shopName");
         })
-        .then(resolve)
+        .then((updated) => {
+          // Customer ko push notification (fire-and-forget)
+          if (updated) {
+            if (deliveryOtp) {
+              NotificationService().sendDeliveryOtpNotification(
+                updated,
+                deliveryOtp
+              );
+            } else {
+              NotificationService().sendOrderStatusNotification(
+                updated,
+                newStatus
+              );
+            }
+          }
+          resolve(updated);
+        })
         .catch(reject);
     });
   };
@@ -239,7 +263,15 @@ module.exports = () => {
 
           return UserOrders.findByIdAndUpdate(order._id, order, { new: true });
         })
-        .then(resolve)
+        .then((updated) => {
+          if (updated) {
+            NotificationService().sendOrderStatusNotification(
+              updated,
+              "confirmed"
+            );
+          }
+          resolve(updated);
+        })
         .catch(reject);
     });
   };
@@ -273,7 +305,21 @@ module.exports = () => {
 
           return UserOrders.findByIdAndUpdate(order._id, order, { new: true });
         })
-        .then(resolve)
+        .then((updated) => {
+          if (updated) {
+            // Poora order cancel hua to standard message, warna partial-cancel message
+            NotificationService().sendOrderStatusNotification(
+              updated,
+              "cancelled",
+              updated.status === "cancelled"
+                ? {}
+                : {
+                    body: `Some items in your order ${updated.orderId} were cancelled by the seller.`,
+                  }
+            );
+          }
+          resolve(updated);
+        })
         .catch(reject);
     });
   };
@@ -284,7 +330,7 @@ module.exports = () => {
   const sendDeliveryOtp = async (orderId, sellerId) => {
     try {
       const helpers = require("../util/helpers")();
-      const otp = helpers.generateOTP();
+      const otp = helpers.generateDeliveryOTP();
       const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
       const order = await UserOrders.findOne({
@@ -312,8 +358,11 @@ module.exports = () => {
         .populate("products.productId", "productName")
         .populate("products.sellerId", "shopName");
 
-      // In production you'd send OTP via SMS/Email. For now return OTP for testing.
-      return { order: updated, otp };
+      // OTP sirf customer app par FCM se jata hai — seller ko kabhi return nahi hota
+      if (updated) {
+        NotificationService().sendDeliveryOtpNotification(updated, otp);
+      }
+      return { order: updated };
     } catch (error) {
       throw error;
     }
@@ -400,11 +449,18 @@ module.exports = () => {
       order.actualDeliveryDate = new Date();
     }
 
-    return UserOrders.findByIdAndUpdate(order._id, order, { new: true })
+    const updated = await UserOrders.findByIdAndUpdate(order._id, order, {
+      new: true,
+    })
       .populate("userId", "fullName email mobileNumber")
       .populate("addressId")
       .populate("products.productId", "productName")
       .populate("products.sellerId", "shopName");
+
+    if (updated) {
+      NotificationService().sendOrderStatusNotification(updated, "delivered");
+    }
+    return updated;
   };
 
   /**

@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign';
+import ComingSoonModal from '../../components/ComingSoonModal';
+import { registerDeviceToken } from '../../service/notificationService';
 import Feather from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
@@ -123,6 +125,27 @@ const Dashboard = (props) => {
   // Header status bar ke peeche tak jaata hai (onboarding screen ki tarah)
   const insets = useSafeAreaInsets();
   const [userProfile, setUserProfile] = useState(null);
+  // Abhi live nahi (wallet, camera search, voice search) — ek hi Coming Soon popup
+  const [comingSoon, setComingSoon] = useState(null); // { title, subtitle, icon } | null
+  const COMING_SOON = {
+    wallet: {
+      title: 'Wallet',
+      subtitle: 'Rewards, cashback aur wallet balance — jald hi aa raha hai!',
+      icon: AppImages.gift,
+    },
+    camera: {
+      title: 'Camera Search',
+      subtitle: 'Photo khinch kar product dhoondho — jald hi aa raha hai!',
+      icon: AppImages.camera,
+      iconTint: '#fff', // red PNG orange circle par gayab ho jata hai
+    },
+    mic: {
+      title: 'Voice Search',
+      subtitle: 'Bol kar product dhoondho — jald hi aa raha hai!',
+      icon: AppImages.mic,
+      iconTint: '#fff',
+    },
+  };
   const [homeData, setHomeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -146,6 +169,8 @@ const Dashboard = (props) => {
       if (result.success) setUserProfile(result.data);
     });
     loadHomeScreen();
+    // FCM token backend par save (order status / delivery OTP push ke liye)
+    registerDeviceToken();
   }, [loadHomeScreen]);
 
   const requireLogin = async (routeName, params) => {
@@ -189,10 +214,13 @@ const Dashboard = (props) => {
 
         <View style={styles.headerActions}>
           {homeData?.wallet?.balance != null && (
-            <View style={styles.walletChip}>
+            <TouchableOpacity
+              style={styles.walletChip}
+              activeOpacity={0.8}
+              onPress={() => setComingSoon(COMING_SOON.wallet)}>
               <Image source={AppImages.gift} style={styles.walletIcon} />
               <Text style={styles.walletText}>₹ {homeData.wallet.balance}</Text>
-            </View>
+            </TouchableOpacity>
           )}
           <TouchableOpacity
             style={styles.menuButton}
@@ -208,9 +236,17 @@ const Dashboard = (props) => {
         onPress={() => navigation.navigate('Search')}>
         <AntDesign name="search1" size={moderateScale(18)} color="#353535" />
         <Text style={styles.searchPlaceholder}>Search</Text>
-        <Image source={AppImages.camera} style={styles.searchIcon} />
+        <TouchableOpacity
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+          onPress={() => setComingSoon(COMING_SOON.camera)}>
+          <Image source={AppImages.camera} style={styles.searchIcon} />
+        </TouchableOpacity>
         <View style={styles.searchDivider} />
-        <Image source={AppImages.mic} style={styles.searchIcon} />
+        <TouchableOpacity
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+          onPress={() => setComingSoon(COMING_SOON.mic)}>
+          <Image source={AppImages.mic} style={styles.searchIcon} />
+        </TouchableOpacity>
       </TouchableOpacity>
 
       {homeData?.banners && homeData.banners.length > 0 && (
@@ -578,6 +614,14 @@ const Dashboard = (props) => {
           </>
         )}
       </ScrollView>
+      <ComingSoonModal
+        visible={!!comingSoon}
+        onClose={() => setComingSoon(null)}
+        title={comingSoon?.title}
+        subtitle={comingSoon?.subtitle}
+        icon={comingSoon?.icon}
+        iconTint={comingSoon?.iconTint}
+      />
     </View>
   );
 };

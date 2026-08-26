@@ -42,11 +42,38 @@ module.exports = function () {
     return hash;
   };
 
-  const generateOTP = (length = 6) => {
-    // return "123456";
-    return process.env.MASTER_OTP_LOGIN;
+  const randomOTP = (length = 6) => {
+    const min = 10 ** (length - 1);
+    return String(min + Math.floor(Math.random() * 9 * min));
+  };
 
-    // return 100000 + Math.floor(Math.random() * 900000);
+  /**
+   * Login OTP:
+   *  - SMS configured (SMS_ENABLED + creds)  → random OTP, SMS se jata hai
+   *  - SMS off + MASTER_OTP_LOGIN set        → master OTP hi generate hota hai
+   *  - dono nahi                              → random (console me log, dev ke liye)
+   * Master OTP verify par hamesha accept hota hai jab tak env me set hai (isMasterOtp).
+   */
+  const generateOTP = (length = 6) => {
+    const SmsService = require("../services/SmsService");
+    if (SmsService().isConfigured()) return randomOTP(length);
+    const master = String(process.env.MASTER_OTP_LOGIN || "").trim();
+    if (master) return master;
+    const otp = randomOTP(length);
+    console.log("[OTP] SMS off & no MASTER_OTP_LOGIN — generated OTP:", otp);
+    return otp;
+  };
+
+  const isMasterOtp = (otp) => {
+    const master = String(process.env.MASTER_OTP_LOGIN || "").trim();
+    return !!master && String(otp || "").trim() === master;
+  };
+
+  // Delivery OTP — hamesha random (login wale master OTP se alag),
+  // sirf customer app par dikhta hai, SMS nahi jata
+  const generateDeliveryOTP = (length = 4) => {
+    const min = 10 ** (length - 1);
+    return String(min + Math.floor(Math.random() * 9 * min));
   };
 
   const checkPassword = async (password, hash) => {
@@ -63,5 +90,7 @@ module.exports = function () {
     hashPassword,
     checkPassword,
     generateOTP,
+    isMasterOtp,
+    generateDeliveryOTP,
   };
 };

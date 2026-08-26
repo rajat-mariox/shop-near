@@ -86,6 +86,14 @@ userRouter.put(
  * Notifications
  */
 
+// FCM device token save/update (app start ya token refresh par call hota hai)
+userRouter.put(
+  "/device-token",
+  AuthMiddleware().verifyUserToken,
+  ErrorHandlerMiddleware(UserController().updateDeviceToken),
+  ResponseMiddleware
+);
+
 userRouter.get(
   "/notifications/switch",
   AuthMiddleware().verifyUserToken,

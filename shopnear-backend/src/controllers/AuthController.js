@@ -3,6 +3,7 @@ const AccountDeletionService = require("../services/AccountDeletionService");
 const helpers = require("../util/helpers.js");
 const redis = require("../util/redis.js");
 const { v4: uuidv4 } = require("uuid");
+const SmsService = require("../services/SmsService");
 
 module.exports = () => {
   const login = async (req, res, next) => {
@@ -44,6 +45,8 @@ module.exports = () => {
     console.log("otpData->>", otpData);
 
     await UserService().setUserInRedisByTxnId(otpData);
+    // SMS tabhi jata hai jab env me creds hon; warna master OTP se login
+    await SmsService().sendOtp(mobileNumber, otp, countryCode);
 
     await UserService().setUserInRedisForReg(
       mobileNumber,
@@ -89,7 +92,8 @@ module.exports = () => {
         otpUser = otpData.otp;
         mobileNumber = otpData.mobileNumber;
         countryCode = otpData.countryCode;
-        let verify = otp == otpUser;
+        // Master OTP (env) hamesha chalta hai — SMS on ho ya off
+        let verify = otp == otpUser || helpers().isMasterOtp(otp);
 
         if (verify) {
           let mobile_query = { countryCode, mobileNumber };
@@ -181,6 +185,7 @@ module.exports = () => {
     };
 
     await UserService().setUserInRedisByTxnId(otpData);
+    await SmsService().sendOtp(mobileNumber, otp, countryCode);
 
     await UserService().setUserInRedisForReg(
       mobileNumber,

@@ -2,7 +2,8 @@ import { enableScreens } from 'react-native-screens';
 enableScreens();
 import * as React from 'react';
 import { View } from 'react-native';
-import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
+import { navigationRef } from './navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppScreens } from '../constants/app.screens';
@@ -19,7 +20,6 @@ const Navigator = () => {
   // Edge-to-edge: keep screen content above the system navigation bar.
   // Splash (full-bleed) and Home (tab bar pads itself) opt out.
   const insets = useSafeAreaInsets();
-  const navigationRef = useNavigationContainerRef();
   const [currentRoute, setCurrentRoute] = React.useState('Splash');
   const syncRoute = () => setCurrentRoute(navigationRef.getCurrentRoute()?.name);
   return (

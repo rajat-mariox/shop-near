@@ -1,0 +1,96 @@
+import { StyleSheet } from 'react-native';
+import { Colors } from '../../themes/Colors';
+import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
+
+export const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: scale(32),
+  },
+  card: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: moderateScale(22),
+    paddingVertical: verticalScale(26),
+    paddingHorizontal: scale(22),
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+  },
+  iconOuterRing: {
+    width: moderateScale(104),
+    height: moderateScale(104),
+    borderRadius: moderateScale(52),
+    backgroundColor: Colors.LIGHT_THEME,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: verticalScale(14),
+  },
+  iconInnerCircle: {
+    width: moderateScale(68),
+    height: moderateScale(68),
+    borderRadius: moderateScale(34),
+    backgroundColor: Colors.theme1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconImage: {
+    width: moderateScale(36),
+    height: moderateScale(36),
+  },
+  badge: {
+    backgroundColor: Colors.LIGHT_THEME,
+    borderRadius: moderateScale(20),
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(4),
+    marginBottom: verticalScale(10),
+  },
+  badgeText: {
+    fontFamily: 'sans-serif',
+    fontSize: fontScale(11),
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    color: Colors.theme1,
+  },
+  // alignSelf: 'stretch' — Android centered text width bug (see LocationPermissionModal)
+  title: {
+    fontFamily: 'sans-serif',
+    fontSize: fontScale(20),
+    fontWeight: '700',
+    color: '#1A1A1A',
+    textAlign: 'center',
+    alignSelf: 'stretch',
+    marginBottom: verticalScale(6),
+  },
+  subtitle: {
+    fontFamily: 'sans-serif',
+    fontSize: fontScale(14),
+    color: '#8a8a8e',
+    textAlign: 'center',
+    alignSelf: 'stretch',
+    lineHeight: fontScale(20),
+    marginBottom: verticalScale(20),
+  },
+  button: {
+    width: '100%',
+    backgroundColor: Colors.theme1,
+    height: verticalScale(48),
+    borderRadius: moderateScale(12),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonText: {
+    fontFamily: 'sans-serif',
+    color: '#fff',
+    fontSize: fontScale(16),
+    fontWeight: '700',
+    textAlign: 'center',
+    alignSelf: 'stretch',
+  },
+});
