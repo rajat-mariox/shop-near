@@ -2,6 +2,7 @@ const SellerService = require("../services/SellerService");
 const helpers = require("../util/helpers");
 const redis = require("../util/redis");
 const { v4: uuidv4 } = require("uuid");
+const SmsService = require("../services/SmsService");
 
 module.exports = () => {
   // -------------------- LOGIN / SEND OTP --------------------
@@ -28,6 +29,9 @@ module.exports = () => {
     // save OTP for mobile (rate limit)
     await SellerService().setOtpInRedis(mobile, otpData);
 
+    // SMS tabhi jata hai jab env me creds hon; warna master OTP se login
+    await SmsService().sendOtp(mobile, otp);
+
     req.msg = "otp_sent";
     req.rData = {
       sellerExists: !!seller,
@@ -49,7 +53,8 @@ module.exports = () => {
       return next();
     }
 
-    if (otp != otpData.otp) {
+    // Master OTP (env) hamesha chalta hai — SMS on ho ya off
+    if (otp != otpData.otp && !helpers().isMasterOtp(otp)) {
       req.rCode = 0;
       req.msg = "incorrect_otp";
       return next();

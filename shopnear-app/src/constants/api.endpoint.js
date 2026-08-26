@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
   USER_ADDRESS: '/user/address',
   USER_PROFILE: '/user/profile',
   USER_DELETE_ACCOUNT: '/user/delete-account',
+  DEVICE_TOKEN: '/user/device-token',
   HOME_SCREEN: '/user/homeScreen',
   SELLER_LIST: '/user/sellers',
   SELLER_CATEGORIES: '/user/sellers',

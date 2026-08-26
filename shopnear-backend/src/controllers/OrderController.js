@@ -557,6 +557,20 @@ module.exports = () => {
   /**
    * Get Seller Orders (with filters)
    */
+  // Delivery OTP sirf customer ke liye hai — seller responses se hata do
+  const hideDeliveryOtp = (order) => {
+    if (!order) return order;
+    const o = typeof order.toObject === "function" ? order.toObject() : { ...order };
+    if (Array.isArray(o.sellerOrderStatus)) {
+      o.sellerOrderStatus = o.sellerOrderStatus.map((s) => {
+        const plain = typeof s.toObject === "function" ? s.toObject() : { ...s };
+        delete plain.otp;
+        return plain;
+      });
+    }
+    return o;
+  };
+
   const getSellerOrders = async (req, res, next) => {
     try {
       console.log("OrderController => getSellerOrders");
@@ -600,7 +614,7 @@ module.exports = () => {
         page,
         limit,
         total_orders,
-        orders,
+        orders: (orders || []).map(hideDeliveryOtp),
         filters: {
           status,
           startDate,
@@ -634,8 +648,10 @@ module.exports = () => {
       }
 
       // Check if seller has products in this order
+      // products.sellerId populated hota hai (shopName) — _id se compare karo
+      const sellerIdOf = (p) => String(p.sellerId?._id || p.sellerId);
       const sellerHasProduct = order.products.some(
-        (p) => p.sellerId.toString() === sellerId.toString()
+        (p) => sellerIdOf(p) === sellerId.toString()
       );
 
       if (!sellerHasProduct) {
@@ -647,11 +663,11 @@ module.exports = () => {
 
       // Filter products for this seller
       order.products = order.products.filter(
-        (p) => p.sellerId.toString() === sellerId.toString()
+        (p) => sellerIdOf(p) === sellerId.toString()
       );
 
       req.msg = "success";
-      req.rData = order;
+      req.rData = hideDeliveryOtp(order);
       next();
     } catch (e) {
       req.rCode = 0;
@@ -682,7 +698,7 @@ module.exports = () => {
       }
 
       req.msg = "order_status_updated";
-      req.rData = order;
+      req.rData = hideDeliveryOtp(order);
       next();
     } catch (e) {
       req.rCode = 0;
@@ -934,8 +950,8 @@ module.exports = () => {
       );
 
       req.msg = "otp_sent";
-      // For now return OTP in response for testing; in prod, remove otp from response
-      req.rData = { order: result.order, otp: result.otp };
+      // OTP customer app par FCM se gaya — seller ko response me nahi milta
+      req.rData = { order: hideDeliveryOtp(result.order) };
       next();
     } catch (e) {
       req.rCode = 0;

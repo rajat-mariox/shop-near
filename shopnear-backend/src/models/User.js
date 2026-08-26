@@ -68,6 +68,16 @@ const UserSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    // FCM push notification token (app login/refresh par update hota hai)
+    deviceToken: {
+      type: String,
+      default: "",
+    },
+    deviceType: {
+      type: String,
+      enum: ["android", "ios", ""],
+      default: "",
+    },
     location: {
       type: { type: String, enum: ["Point"], default: "Point" },
       coordinates: { type: [Number], default: [0, 0] }, // [long, lat]

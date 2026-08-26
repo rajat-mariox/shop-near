@@ -679,7 +679,7 @@ const Transaction = () => {
                       Status <Sorter />
                     </span>
                   </th>
-                  <th style={{ ...thStyle, minWidth: 160, borderTopRightRadius: 16 }}>
+                  <th style={{ ...thStyle, minWidth: 220, borderTopRightRadius: 16 }}>
                     Action
                   </th>
                 </tr>
@@ -764,7 +764,7 @@ const Transaction = () => {
                         <Chip bg={ss.bg} color={ss.color}>{sellerSt}</Chip>
                       </td>
                       <td style={tdStyle}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap" }}>
                           <img
                             src={icEye}
                             alt="View"
