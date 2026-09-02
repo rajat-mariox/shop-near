@@ -103,6 +103,18 @@ module.exports = (lang = "en") => {
     en: "seller not approved yet",
   };
 
+  const otp_sent_on_mail = {
+    en: "otp sent on your registered email",
+  };
+
+  const otp_email_failed = {
+    en: "failed to send otp email, try again later",
+  };
+
+  const admin_not_found = {
+    en: "admin not found with given email",
+  };
+
   return {
     user_already_found: user_already_found[lang],
     success: success[lang],
@@ -130,5 +142,8 @@ module.exports = (lang = "en") => {
     mobile_required: mobile_required[lang],
     invalid_or_expired_otp: invalid_or_expired_otp[lang],
     seller_not_approved: seller_not_approved[lang],
+    otp_sent_on_mail: otp_sent_on_mail[lang],
+    otp_email_failed: otp_email_failed[lang],
+    admin_not_found: admin_not_found[lang],
   };
 };

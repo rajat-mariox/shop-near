@@ -46,10 +46,15 @@ module.exports = () => {
   };
 
   const sendViaMsg91 = async (to, otp, c) => {
-    // https://docs.msg91.com/reference/send-otp
+    // https://docs.msg91.com/reference/send-sms — Flow API, DLT-verified SMS
+    // template ke saath chalta hai jisme ##var1## = OTP hai (OTP-type template zaroori nahi)
     const res = await axios.post(
-      "https://control.msg91.com/api/v5/otp",
-      { template_id: c.templateId, mobile: to, otp, sender: c.senderId || undefined },
+      "https://control.msg91.com/api/v5/flow",
+      {
+        template_id: c.templateId,
+        sender: c.senderId || undefined,
+        recipients: [{ mobiles: to, var1: String(otp) }],
+      },
       { headers: { authkey: c.apiKey, "Content-Type": "application/json" }, timeout: 10000 }
     );
     if (res.data && res.data.type === "error") {
