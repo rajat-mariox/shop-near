@@ -82,6 +82,8 @@ export default function Onboarding({ verification = false }) {
   const [businessProof, setBusinessProof] = useState(null);
   const [address, setAddress] = useState("");
   const [coords, setCoords] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const sugTimer = useRef(null);
 
   const token = localStorage.getItem("sellerToken");
 
@@ -187,6 +189,61 @@ export default function Onboarding({ verification = false }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Address autocomplete — Photon (OpenStreetMap), free/no API key.
+  // Debounce ke saath, India bounding box tak limited. Plain fetch use
+  // karo — axios client Authorization token inject karta hai jo bahar
+  // ke API par nahi jana chahiye.
+  const handleAddressChange = (val) => {
+    setAddress(val);
+    setCoords(null); // address haath se badla to purana pin invalid
+    if (sugTimer.current) clearTimeout(sugTimer.current);
+    if (!val || val.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    sugTimer.current = setTimeout(async () => {
+      try {
+        const url =
+          "https://photon.komoot.io/api/?limit=5&lang=en" +
+          "&bbox=68.1,6.5,97.4,35.7" +
+          "&q=" +
+          encodeURIComponent(val.trim());
+        const res = await fetch(url);
+        const json = await res.json();
+        const items = (json.features || [])
+          .map((f) => {
+            const p = f.properties || {};
+            const label = [
+              p.name,
+              p.street,
+              p.district,
+              p.city,
+              p.state,
+              p.postcode,
+            ]
+              .filter(Boolean)
+              .filter((v, i, arr) => arr.indexOf(v) === i)
+              .join(", ");
+            return {
+              label,
+              lat: f.geometry?.coordinates?.[1],
+              lng: f.geometry?.coordinates?.[0],
+            };
+          })
+          .filter((s) => s.label);
+        setSuggestions(items);
+      } catch {
+        setSuggestions([]);
+      }
+    }, 350);
+  };
+
+  const pickSuggestion = (s) => {
+    setAddress(s.label);
+    if (s.lat && s.lng) setCoords({ lat: s.lat, lng: s.lng });
+    setSuggestions([]);
   };
 
   const handleFindOnMap = () => {
@@ -398,14 +455,30 @@ export default function Onboarding({ verification = false }) {
               </div>
             </div>
 
-            <div className="ob-field">
+            <div className="ob-field ob-sug-wrap">
               <label>Shop Location</label>
               <input
                 className="ob-input"
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={(e) => handleAddressChange(e.target.value)}
+                onBlur={() => setTimeout(() => setSuggestions([]), 200)}
                 placeholder="Enter Shop Location"
+                autoComplete="off"
               />
+              {suggestions.length > 0 && (
+                <div className="ob-sug-list">
+                  {suggestions.map((s, i) => (
+                    <button
+                      type="button"
+                      key={`${s.label}-${i}`}
+                      className="ob-sug-item"
+                      onMouseDown={() => pickSuggestion(s)}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="ob-findmap-row">
