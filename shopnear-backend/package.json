@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@aws-sdk/lib-storage": "^3.903.0",
+    "axios": "^1.13.5",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
@@ -26,13 +27,13 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.1",
     "node-input-validator": "^4.5.1",
+    "nodemailer": "^7.0.0",
     "razorpay": "^2.9.6",
     "redis": "^5.8.3",
     "regex-escape": "^3.4.11",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "axios": "^1.13.5",
     "chalk": "^5.6.2",
     "nodemon": "^3.1.10"
   }

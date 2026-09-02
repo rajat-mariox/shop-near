@@ -7,6 +7,7 @@ const UserService = require("../services/UserService");
 const ProductService = require("../services/ProductService");
 const OrderService = require("../services/OrderService");
 const SettingsService = require("../services/SettingsService");
+const EmailService = require("../services/EmailService");
 const fileUploadService = require("../util/s3");
 const RegexEscape = require("regex-escape");
 const helpers = require("../util/helpers");
@@ -212,8 +213,17 @@ module.exports = () => {
       await AdminService().updateProfile(user._id, { otp });
       user = await AdminService().fetch(user._id);
 
-      req.msg = "otp_sent_on_mail";
-      req.rData = {};
+      // OTP ab actually mail par jata hai — fail ho to client ko batao
+      const sent = await EmailService().sendOtpEmail(email, otp, user.name);
+
+      if (sent) {
+        req.msg = "otp_sent_on_mail";
+        req.rData = {};
+      } else {
+        req.rCode = 0;
+        req.msg = "otp_email_failed";
+        req.rData = {};
+      }
     } else {
       req.rCode = 0;
       req.msg = "admin_not_found";
@@ -293,11 +303,18 @@ module.exports = () => {
 
       await AdminService().updateProfile(user._id, { otp });
 
-      req.rData = {};
-      req.msg = "otp_sent_on_mail";
+      const sent = await EmailService().sendOtpEmail(email, otp, user.name);
+
+      if (sent) {
+        req.rData = {};
+        req.msg = "otp_sent_on_mail";
+      } else {
+        req.rCode = 0;
+        req.msg = "otp_email_failed";
+      }
     } else {
       req.rCode = 0;
-      req.msg = msg;
+      req.msg = "admin_not_found";
     }
     next();
   };
