@@ -16,7 +16,9 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-// Redirect to login on 401/403
+// Redirect to login on 401/403 — sirf protected pages se. Auth/onboarding
+// pages par hard redirect mat karo, warna signup ke beech me screen
+// bina message ke gayab ho jati hai; wahan component khud error handle karta hai.
 client.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -24,9 +26,15 @@ client.interceptors.response.use(
       err.response &&
       (err.response.status === 401 || err.response.status === 403)
     ) {
-      localStorage.removeItem("sellerToken");
-      localStorage.removeItem("sellerUser");
-      window.location.href = "/login";
+      const path = window.location.pathname;
+      const onAuthPage = ["/login", "/onboarding", "/verification"].some((p) =>
+        path.startsWith(p),
+      );
+      if (!onAuthPage) {
+        localStorage.removeItem("sellerToken");
+        localStorage.removeItem("sellerUser");
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(err);
   },

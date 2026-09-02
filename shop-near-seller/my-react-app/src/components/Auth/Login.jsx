@@ -41,7 +41,23 @@ export default function Login() {
       const data = res.data?.data || res.data;
       setTxnId(data.txnId || data.transactionId || "");
       setOtpSent(true);
-      setInfo(`OTP sent to +91 ${mobile}`);
+
+      // Backend batata hai number registered hai ya nahi — user ko sahi
+      // flow par bhejo instead of chupchap OTP verify karne ke
+      if (mode === "login" && data.sellerExists === false) {
+        setMode("signup");
+        setInfo(
+          `You don't have an account yet. Please create a new seller account — ` +
+            `OTP sent to +91 ${mobile}. After signup, wait for admin approval.`,
+        );
+      } else if (mode === "signup" && data.sellerExists === true) {
+        setMode("login");
+        setInfo(
+          `This number is already registered. OTP sent to +91 ${mobile} — enter it to login.`,
+        );
+      } else {
+        setInfo(`OTP sent to +91 ${mobile}`);
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to send OTP");
     } finally {

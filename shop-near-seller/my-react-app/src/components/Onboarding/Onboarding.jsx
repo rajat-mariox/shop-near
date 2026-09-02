@@ -116,7 +116,15 @@ export default function Onboarding({ verification = false }) {
           navigate("/onboarding", { replace: true });
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        // Session invalid (token expire / seller delete) → wapas login par
+        const status = err.response?.status;
+        if (status === 401 || status === 403) {
+          localStorage.removeItem("sellerToken");
+          navigate("/login", { replace: true });
+        }
+        // Network/server error par form dikhna chahiye — silently ignore
+      });
 
     getSellerCategories()
       .then((res) => {
@@ -142,8 +150,14 @@ export default function Onboarding({ verification = false }) {
           setSeller(data);
           setRejected(true);
         }
-      } catch {
-        // keep polling
+      } catch (err) {
+        const status = err.response?.status;
+        if (status === 401 || status === 403) {
+          clearInterval(timer);
+          localStorage.removeItem("sellerToken");
+          navigate("/login", { replace: true });
+        }
+        // network error → keep polling
       }
     }, 10000);
     return () => clearInterval(timer);
