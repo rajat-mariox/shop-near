@@ -369,6 +369,47 @@
   flex: 1;
 }
 
+/* Shop location autocomplete dropdown */
+.ob-sug-wrap {
+  position: relative;
+}
+
+.ob-sug-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.ob-sug-item {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.ob-sug-item:last-child {
+  border-bottom: none;
+}
+
+.ob-sug-item:hover {
+  background: #fff1ef;
+}
+
 .ob-sendotp-btn {
   height: 36px;
   padding: 0 12px;

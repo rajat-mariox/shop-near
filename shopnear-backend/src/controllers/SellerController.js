@@ -1,5 +1,6 @@
 const SellerService = require("../services/SellerService");
 const ProductService = require("../services/ProductService");
+const Products = require("../models/Product");
 const fileUploadService = require("../util/s3");
 var ObjectId = require("mongoose").Types.ObjectId;
 
@@ -285,8 +286,10 @@ module.exports = () => {
   };
 
   /**
-   * Soft Delete Seller
-   * (Admin)
+   * Permanent Delete Seller (Admin)
+   * Seller record DB se hamesha ke liye delete — number dobara fresh
+   * register ho sakta hai. Products soft-delete hote hain taaki purani
+   * orders ka data na toote, par app me dikhna band ho jayen.
    */
   const deleteSeller = async (req, res, next) => {
     console.log("SellerController => deleteSeller");
@@ -295,10 +298,12 @@ module.exports = () => {
 
     const finalId = sellerId || id;
 
-    await SellerService().updateSeller(finalId, {
-      isDeleted: true,
-      isActive: false,
-    });
+    await Products.updateMany(
+      { sellerId: new ObjectId(finalId) },
+      { isDeleted: true, isActive: false }
+    );
+
+    await SellerService().deleteSeller(finalId);
 
     req.msg = "success";
     req.rData = {};
