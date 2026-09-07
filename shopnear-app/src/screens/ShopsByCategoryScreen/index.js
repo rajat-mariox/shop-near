@@ -13,6 +13,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { AppImages } from '../../constants/app.image';
 import { Colors } from '../../themes/Colors';
 import { fetchShopsByCategory } from '../../service/sellerService';
+import { getCurrentLocation } from '../../utils/location';
 import { imageSource } from '../../utils/media';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
 import ScreenHeader from '../../components/ScreenHeader';
@@ -26,6 +27,8 @@ const ShopsByCategoryScreen = ({ route, navigation }) => {
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Backend se: { hasLocation, radiusKm } - empty state message ke liye
+  const [nearbyInfo, setNearbyInfo] = useState(null);
 
   const loadShops = useCallback(() => {
     if (!categoryId) {
@@ -35,8 +38,13 @@ const ShopsByCategoryScreen = ({ route, navigation }) => {
     }
     setLoading(true);
     setError(null);
-    fetchShopsByCategory(categoryId)
+    // Home/Search jaisa: pehle live GPS, phir sirf nearby (admin radius) shops.
+    // Pehle coords nahi jaate the, to bina saved address wale user ko hamesha khali list milti thi.
+    getCurrentLocation()
+      .catch(() => null)
+      .then(coords => fetchShopsByCategory(categoryId, 1, 20, coords))
       .then(res => {
+        setNearbyInfo(res.data?.nearby || null);
         if (res.success && Array.isArray(res.data?.sellers)) {
           setShops(res.data.sellers);
         } else {
@@ -139,7 +147,13 @@ const ShopsByCategoryScreen = ({ route, navigation }) => {
     if (shops.length === 0) {
       return (
         <View style={styles.centerBox}>
-          <Text style={styles.messageText}>Is category me abhi koi shop nahi hai</Text>
+          <Text style={styles.messageText}>
+            {nearbyInfo && nearbyInfo.hasLocation === false
+              ? 'Aas-paas ki shops dekhne ke liye location on karo ya delivery address add karo'
+              : nearbyInfo?.radiusKm
+              ? `${nearbyInfo.radiusKm} km ke andar is category ki koi shop nahi hai`
+              : 'Is category me abhi koi shop nahi hai'}
+          </Text>
         </View>
       );
     }

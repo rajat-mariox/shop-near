@@ -34,6 +34,35 @@ export const fetchProductsByCategory = async (sellerId, categoryId) => {
 };
 
 /**
+ * Fetch all products of a brand (home "Popular Brand" tile)
+ * @param {string} brandId - Brand ID
+ */
+export const fetchProductsByBrand = async (brandId) => {
+  try {
+    const token = await getTokenStorage();
+    if (!token) {
+      throw new Error('No auth token found');
+    }
+    const url = `${API_BASE_URL}/user/brands/${brandId}/products`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await response.json();
+    if (data.code === 1) {
+      return { success: true, data: data.data };
+    } else {
+      return { success: false, message: data.message || 'Failed to fetch products' };
+    }
+  } catch (error) {
+    return { success: false, message: error.message || 'Network error' };
+  }
+};
+
+/**
  * Fetch product details by product ID
  * @param {string} productId - Product ID
  * @returns {Promise<{success: boolean, data?: any, message?: string}>}

@@ -38,6 +38,15 @@ module.exports = () => {
   };
 
   /**
+   * GET /v1/api/user/brands/:brandId/products
+   * Popular Brand tile: us brand ke products
+   */
+  const getBrandProductsList = async (req, res, next) => {
+    console.log("CustomerController => getBrandProductsList");
+    await CustomerService.getBrandProducts(req, res, next);
+  };
+
+  /**
    * GET /v1/api/customer/products/:productId
    * Get product details
    */
@@ -60,6 +69,7 @@ module.exports = () => {
     getSellerDetail,
     getSellerCategoriesDetail,
     getSellerProductsList,
+    getBrandProductsList,
     getProductDetail,
     searchProductsList,
   };
