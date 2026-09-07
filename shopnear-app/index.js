@@ -13,6 +13,15 @@ try {
 } catch (e) {
   // google-services.json na ho to Firebase init nahi hota — app phir bhi chale
 }
+// Notifee notification (foreground me dikhayi gayi) ko app background me tap kiya:
+// launchActivity se app aage aati hai, yahan se tracking screen par navigate.
+try {
+  const notifee = require('@notifee/react-native').default;
+  const { handleNotifeeEvent } = require('./src/service/notificationService');
+  notifee.onBackgroundEvent(async (event) => handleNotifeeEvent(event));
+} catch (e) {
+  // Notifee native module na ho (purana build) to skip
+}
 import { name as appName } from './app.json';
 
 AppRegistry.registerComponent(appName, () => App);
