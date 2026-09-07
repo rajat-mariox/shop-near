@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Image,
   ImageBackground,
   ScrollView,
@@ -147,8 +148,9 @@ const Dashboard = (props) => {
   // Order hamesha checkout par chune gaye saved address par jaata hai, is se nahi.
   const [liveLocation, setLiveLocation] = useState(null); // { lat, lng, label }
 
-  const loadHomeScreen = useCallback((coords = null) => {
-    setLoading(true);
+  // silent = background refresh (app resume): poora loader mat dikhao, data chupchap badal do
+  const loadHomeScreen = useCallback((coords = null, silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     fetchHomeScreen(coords).then((result) => {
       if (result.success) {
@@ -161,7 +163,7 @@ const Dashboard = (props) => {
   }, []);
 
   // GPS lo -> home load karo (deny/fail par bina coords: backend saved address try karta hai)
-  const locateAndLoad = useCallback(async () => {
+  const locateAndLoad = useCallback(async (silent = false) => {
     const coords = await getCurrentLocation();
     if (coords) {
       setLiveLocation({ ...coords, label: null });
@@ -170,7 +172,7 @@ const Dashboard = (props) => {
         if (label) setLiveLocation((prev) => (prev ? { ...prev, label } : prev));
       });
     }
-    loadHomeScreen(coords);
+    loadHomeScreen(coords, silent);
   }, [loadHomeScreen]);
 
   useEffect(() => {
@@ -180,6 +182,19 @@ const Dashboard = (props) => {
     locateAndLoad();
     // FCM token backend par save (order status / delivery OTP push ke liye)
     registerDeviceToken();
+  }, [locateAndLoad]);
+
+  // App background se wapas active ho (user ne dobara khola) to nayi location
+  // fetch karke home refresh karo; cold start upar wale effect se hota hai
+  useEffect(() => {
+    let last = AppState.currentState;
+    const sub = AppState.addEventListener('change', (next) => {
+      if ((last === 'background' || last === 'inactive') && next === 'active') {
+        locateAndLoad(true);
+      }
+      last = next;
+    });
+    return () => sub.remove();
   }, [locateAndLoad]);
 
   const requireLogin = async (routeName, params) => {

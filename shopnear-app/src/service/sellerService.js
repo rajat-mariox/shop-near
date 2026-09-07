@@ -10,13 +10,17 @@ import { getTokenStorage } from '../utils/tokenStorage';
  * @param {number} limit - Results per page (optional)
  * @returns {Promise<{success: boolean, data?: any, message?: string}>}
  */
-export const fetchSellers = async (page = 1, limit = 10) => {
+// coords = live GPS { lat, lng }; backend isi se nearby (admin radius) filter karta hai,
+// na ho to saved address use karta hai
+export const fetchSellers = async (page = 1, limit = 10, coords = null) => {
   try {
     const token = await getTokenStorage();
     if (!token) {
       throw new Error('No auth token found');
     }
-    const url = `${API_BASE_URL}${API_ENDPOINTS.SELLER_LIST}?page=${page}&limit=${limit}`;
+    const geo =
+      coords && coords.lat != null && coords.lng != null ? `&lat=${coords.lat}&lng=${coords.lng}` : '';
+    const url = `${API_BASE_URL}${API_ENDPOINTS.SELLER_LIST}?page=${page}&limit=${limit}${geo}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
