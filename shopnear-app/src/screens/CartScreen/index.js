@@ -19,6 +19,7 @@ import { showToast } from '../../utils/toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../themes/Colors';
 import { fontScale, moderateScale } from '../../utils/responsive';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const THEME_COLOR = Colors.theme1;
 // Figma frame 402dp (node 50:650 "Your Cart")
@@ -50,11 +51,6 @@ const CartItem = ({ item, onQtyChange, onRemove }) => (
       </Text>
     </View>
     <View style={styles.cartItemRight}>
-      <TouchableOpacity
-        onPress={() => onRemove(item.id)}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Feather name="trash-2" size={moderateScale(15)} color="#C5C5C5" />
-      </TouchableOpacity>
       <View style={styles.qtyPill}>
         <TouchableOpacity
           onPress={() => onQtyChange(item.id, -1)}
@@ -145,7 +141,12 @@ const CartScreen = ({ navigation }) => {
   const handleQtyChange = async (id, delta) => {
     const item = items.find(i => i.id === id);
     if (!item) return;
-    const newQty = Math.max(1, item.qty + delta);
+    // Delete icon nahi hai: qty 1 par "-" dabane se item cart se hat jaata hai
+    if (item.qty + delta < 1) {
+      handleRemove(id);
+      return;
+    }
+    const newQty = item.qty + delta;
     setItems(prev => prev.map(i => (i.id === id ? { ...i, qty: newQty } : i)));
     const result = await updateCartItemQty(id, newQty);
     if (!result.success) {
@@ -301,7 +302,7 @@ const CartScreen = ({ navigation }) => {
     /* Navigator upar status bar ki jagah khud bhar deta hai, isliye sirf bottom edge */
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       {/* Header */}
-      <View style={styles.headerContainer}>
+      <ScreenHeader style={styles.headerContainer}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <AntDesign name="left" size={moderateScale(20)} color="#fff" />
         </TouchableOpacity>
@@ -311,7 +312,7 @@ const CartScreen = ({ navigation }) => {
         <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Wishlist')}>
           <AntDesign name="hearto" size={moderateScale(20)} color="#fff" />
         </TouchableOpacity>
-      </View>
+      </ScreenHeader>
 
       {loading ? (
         <View style={styles.stateBox}>

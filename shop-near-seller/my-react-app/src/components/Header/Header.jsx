@@ -1,26 +1,7 @@
 import React from "react";
 import useAuthStore from "../../store/authStore";
 import fallbackLogo from "../../assets/Images/newLogo.jpeg";
-import icSearch from "../../assets/figma/ic-search.svg";
-import icMail from "../../assets/figma/ic-mail.svg";
-import icBell from "../../assets/figma/ic-bell.svg";
-
-const IconButton = ({ src, alt }) => (
-  <button
-    aria-label={alt}
-    style={{
-      background: "#f6f6f6",
-      border: "none",
-      borderRadius: 9,
-      padding: 6,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    }}
-  >
-    <img src={src} alt="" style={{ width: 22, height: 22, objectFit: "contain" }} />
-  </button>
-);
+import NotificationBell from "./NotificationBell";
 
 const Header = () => {
   const seller = useAuthStore((s) => s.seller);
@@ -32,51 +13,21 @@ const Header = () => {
         minHeight: 87,
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: "flex-end",
         gap: 16,
         padding: "24px 32px",
         background: "#fff",
         borderBottom: "2px solid #e7e7e7",
       }}
     >
-      {/* Search */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          width: 300,
-          maxWidth: "100%",
-          border: "1.6px solid #b0b0b0",
-          borderRadius: 12,
-          padding: "8px 16px",
-          background: "#fff",
-        }}
-      >
-        <input
-          type="text"
-          placeholder="Search product"
-          style={{
-            flex: 1,
-            border: "none",
-            fontSize: 14,
-            color: "#454545",
-            background: "transparent",
-            minWidth: 0,
-          }}
-        />
-        <img src={icSearch} alt="" style={{ width: 20, height: 20 }} />
-      </div>
-
       {/* Right content */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <IconButton src={icMail} alt="Messages" />
-        <IconButton src={icBell} alt="Notifications" />
+        <NotificationBell />
         <div style={{ width: 1, height: 34, background: "#e7e7e7" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ position: "relative", width: 40, height: 36, flexShrink: 0 }}>
             <img
-              src={seller?.ownerImage || seller?.shopLogo || fallbackLogo}
+              src={seller?.shopLogo || seller?.ownerImage || fallbackLogo}
               alt=""
               style={{
                 width: 40,

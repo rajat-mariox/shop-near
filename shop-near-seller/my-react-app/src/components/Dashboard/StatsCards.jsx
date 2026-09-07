@@ -95,8 +95,9 @@ const StatsCards = () => {
     getSellerProducts({ page: 1, limit: 1 })
       .then((res) => {
         const d = res.data?.data || res.data;
+        // Backend total_products bhejta hai (productStore jaisa hi), warna sirf page ke items ginte the
         setProductCount(
-          d.total || d.totalProducts || (d.products || []).length || 0,
+          d.total_products ?? d.totalProducts ?? d.total ?? (d.products || []).length ?? 0,
         );
       })
       .catch(() => {});

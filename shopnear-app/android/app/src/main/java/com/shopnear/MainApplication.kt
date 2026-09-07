@@ -1,6 +1,11 @@
 package com.shopnear
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.media.AudioAttributes
+import android.media.RingtoneManager
+import android.os.Build
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -23,5 +28,35 @@ class MainApplication : Application(), ReactApplication {
   override fun onCreate() {
     super.onCreate()
     loadReactNative(this)
+    createNotificationChannels()
+  }
+
+  // FCM background notifications ke liye HIGH importance channel. Bina iske Android
+  // fallback "Miscellaneous" channel use karta hai: na heads-up banner, na sound.
+  // Backend isi channel id par bhejta hai (android.notification.channelId).
+  private fun createNotificationChannels() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+    val manager = getSystemService(NotificationManager::class.java) ?: return
+    val channel =
+      NotificationChannel(ORDER_CHANNEL_ID, "Order Updates", NotificationManager.IMPORTANCE_HIGH)
+        .apply {
+          description = "Order status, delivery OTP and delivery updates"
+          enableLights(true)
+          lightColor = 0xFFFF6051.toInt()
+          enableVibration(true)
+          setShowBadge(true)
+          setSound(
+            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+            AudioAttributes.Builder()
+              .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+              .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+              .build(),
+          )
+        }
+    manager.createNotificationChannel(channel)
+  }
+
+  companion object {
+    const val ORDER_CHANNEL_ID = "order_updates"
   }
 }

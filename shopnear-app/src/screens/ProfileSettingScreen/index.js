@@ -8,16 +8,21 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Alert,
+  PermissionsAndroid,
+  Platform,
 } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import Feather from 'react-native-vector-icons/Feather';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StandaloneTabBar } from '../../routes/MyBottomTabs';
 import { fetchUserProfile, updateUserProfile } from '../../service/userProfile';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { showToast } from '../../utils/toast';
 import { Colors } from '../../themes/Colors';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const THEME_COLOR = Colors.theme1;
 // Figma 55:5644 — labels/values ke colors
@@ -66,15 +71,47 @@ const ProfileSettingScreen = ({ navigation }) => {
     getProfile();
   }, []);
 
-  // Image picker handler
-  const handlePickImage = async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      quality: 0.8,
-    });
+  const applyPicked = (result) => {
+    if (result.errorCode) {
+      showToast(result.errorMessage || 'Photo select nahi ho paayi', 'error');
+      return;
+    }
     if (!result.didCancel && result.assets && result.assets.length > 0) {
       SetProfileImages(result.assets[0]);
     }
+  };
+
+  const pickFromGallery = async () => {
+    applyPicked(await launchImageLibrary({ mediaType: 'photo', quality: 0.8 }));
+  };
+
+  // Manifest me CAMERA permission declare hai, isliye Android par launchCamera se
+  // pehle runtime permission zaroori hai
+  const pickFromCamera = async () => {
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
+        title: 'Camera permission',
+        message: 'Profile photo lene ke liye camera access chahiye.',
+        buttonPositive: 'Allow',
+        buttonNegative: 'Cancel',
+      });
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        showToast('Camera permission nahi mili. Settings se allow karein.', 'error');
+        return;
+      }
+    }
+    applyPicked(
+      await launchCamera({ mediaType: 'photo', quality: 0.8, saveToPhotos: false, cameraType: 'front' }),
+    );
+  };
+
+  // Camera badge: camera ya gallery, user chune
+  const handlePickImage = () => {
+    Alert.alert('Profile photo', '', [
+      { text: 'Take Photo', onPress: pickFromCamera },
+      { text: 'Choose from Gallery', onPress: pickFromGallery },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const handleSave = async () => {
@@ -104,9 +141,10 @@ const ProfileSettingScreen = ({ navigation }) => {
 
   return (
     /* Navigator status bar area khud handle karta hai, isliye sirf bottom edge */
-    <SafeAreaView style={styles.screen} edges={['bottom']}>
+    /* Bottom inset tab bar khud sambhalta hai */
+    <SafeAreaView style={styles.screen} edges={[]}>
       {/* Header */}
-      <View style={styles.headerContainer}>
+      <ScreenHeader style={styles.headerContainer}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -115,7 +153,7 @@ const ProfileSettingScreen = ({ navigation }) => {
         <Text style={styles.headerTitle} numberOfLines={1}>
           Profile Setting
         </Text>
-      </View>
+      </ScreenHeader>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -198,6 +236,8 @@ const ProfileSettingScreen = ({ navigation }) => {
           <Text style={styles.saveButtonText}>Save change</Text>
         )}
       </TouchableOpacity>
+      {/* Profile se khulta hai, Profile tab active */}
+      <StandaloneTabBar activeName="Profile" />
     </SafeAreaView>
   );
 };

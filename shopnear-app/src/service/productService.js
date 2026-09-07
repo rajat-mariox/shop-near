@@ -98,21 +98,46 @@ export const fetchProductRatings = async (productId) => {
  * @param {{orderId: string, rating: number, reviewText?: string}} payload
  * @returns {Promise<{success: boolean, data?: any, message?: string}>}
  */
-export const submitProductRating = async (productId, { orderId, rating, reviewText }) => {
+export const submitProductRating = async (
+  productId,
+  { orderId, rating, reviewText, images = [] },
+) => {
   try {
     const token = await getTokenStorage();
     if (!token) {
       throw new Error('No auth token found');
     }
     const url = `${API_BASE_URL}${API_ENDPOINTS.PRODUCT}/${productId}/ratings`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ orderId, rating, reviewText }),
-    });
+    let options;
+    if (images.length > 0) {
+      // Review photos ke saath multipart; backend req.files.images se S3 par daalta hai
+      const formData = new FormData();
+      formData.append('orderId', String(orderId));
+      formData.append('rating', String(rating));
+      formData.append('reviewText', reviewText || '');
+      images.forEach((img, idx) => {
+        formData.append('images', {
+          uri: img.uri,
+          name: img.fileName || `review_${idx}.jpg`,
+          type: img.type || 'image/jpeg',
+        });
+      });
+      options = {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+      };
+    } else {
+      options = {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId, rating, reviewText }),
+      };
+    }
+    const response = await fetch(url, options);
     const data = await response.json();
     if (data.code === 1) {
       return { success: true, data: data.data };

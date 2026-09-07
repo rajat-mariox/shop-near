@@ -971,7 +971,10 @@ const Transaction = () => {
               background: "#fff",
               borderRadius: 16,
               padding: 28,
-              minWidth: 360,
+              width: "100%",
+              maxWidth: 460,
+              margin: 16,
+              boxSizing: "border-box",
               fontFamily: FONT,
             }}
             onClick={(e) => e.stopPropagation()}
@@ -1050,7 +1053,10 @@ const Transaction = () => {
               background: "#fff",
               borderRadius: 16,
               padding: 28,
-              minWidth: 360,
+              width: "100%",
+              maxWidth: 460,
+              margin: 16,
+              boxSizing: "border-box",
               fontFamily: FONT,
             }}
             onClick={(e) => e.stopPropagation()}
@@ -1256,7 +1262,10 @@ const Transaction = () => {
               background: "#fff",
               borderRadius: 16,
               padding: 28,
-              minWidth: 360,
+              width: "100%",
+              maxWidth: 460,
+              margin: 16,
+              boxSizing: "border-box",
               fontFamily: FONT,
             }}
             onClick={(e) => e.stopPropagation()}

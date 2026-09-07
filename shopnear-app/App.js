@@ -5,6 +5,12 @@ import Navigator from './src/routes/Navigator';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar, View } from 'react-native';
 import Toast from 'react-native-toast-message';
+import NotificationToast from './src/components/NotificationToast';
+
+// FCM foreground notification ka custom card; success/error toasts default hi rehte hain
+const toastConfig = {
+  notification: (props) => <NotificationToast {...props} />,
+};
 
 const AppContent = () => {
   // FCM: foreground toast + notification tap → order tracking
@@ -14,7 +20,7 @@ const AppContent = () => {
     <View style={{ flex: 1, backgroundColor: Colors.WHITE }}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.theme1} />
       <Navigator />
-      <Toast />
+      <Toast config={toastConfig} />
     </View>
   );
 };

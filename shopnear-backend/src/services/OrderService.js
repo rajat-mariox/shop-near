@@ -539,6 +539,9 @@ module.exports = () => {
    */
   const getSellerOrderStats = (sellerId) => {
     return new Promise(function (resolve, reject) {
+      // Dashboard "Your Sales this year" ke liye current calendar year
+      const year = new Date().getFullYear();
+      const yearStart = new Date(year, 0, 1);
       UserOrders.aggregate([
         {
           $match: {
@@ -590,6 +593,32 @@ module.exports = () => {
                 },
               },
             ],
+            // Distinct customers jinhone is seller se kabhi order kiya
+            uniqueCustomers: [
+              { $group: { _id: "$userId" } },
+              { $count: "count" },
+            ],
+            // Month-wise seller revenue (sirf is seller ke products ka totalPrice,
+            // grandTotal nahi - usme delivery charge aur doosre sellers ka saman hota hai)
+            monthly: [
+              { $match: { createdAt: { $gte: yearStart } } },
+              { $unwind: "$products" },
+              { $match: { "products.sellerId": new ObjectId(sellerId) } },
+              {
+                $group: {
+                  _id: { month: { $month: "$createdAt" }, order: "$_id" },
+                  revenue: { $sum: "$products.totalPrice" },
+                },
+              },
+              {
+                $group: {
+                  _id: "$_id.month",
+                  revenue: { $sum: "$revenue" },
+                  orders: { $sum: 1 },
+                },
+              },
+              { $sort: { _id: 1 } },
+            ],
           },
         },
       ])
@@ -599,7 +628,21 @@ module.exports = () => {
             pendingOrders: result[0].pendingOrders[0]?.count || 0,
             completedOrders: result[0].completedOrders[0]?.count || 0,
             totalRevenue: result[0].totalRevenue[0]?.total || 0,
+            uniqueCustomers: result[0].uniqueCustomers[0]?.count || 0,
           };
+
+          // 12 entries (Jan..Dec), khali months 0 ke saath
+          const byMonth = new Map(
+            (result[0].monthly || []).map((m) => [m._id, m])
+          );
+          stats.year = year;
+          stats.monthlyRevenue = Array.from({ length: 12 }, (_, i) => ({
+            month: i + 1,
+            revenue: byMonth.get(i + 1)?.revenue || 0,
+            orders: byMonth.get(i + 1)?.orders || 0,
+          }));
+          stats.yearRevenue = stats.monthlyRevenue.reduce((a, m) => a + m.revenue, 0);
+          stats.yearOrders = stats.monthlyRevenue.reduce((a, m) => a + m.orders, 0);
           resolve(stats);
         })
         .catch(reject);
@@ -737,6 +780,63 @@ module.exports = () => {
   /**
    * Get Seller Customers (aggregated from orders, server-side search + pagination)
    */
+  /**
+   * Dashboard "Customer Growth" map: seller ke orders ko delivery address ki
+   * city par group karo. lat/lng = us city ke addresses ka average (jahan saved
+   * hai), warna null (panel city naam se geocode kar leta hai).
+   */
+  const getSellerCustomerCities = async (sellerId) => {
+    const rows = await UserOrders.aggregate([
+      { $match: { "products.sellerId": new ObjectId(sellerId) } },
+      {
+        $lookup: {
+          from: "useraddresses",
+          localField: "addressId",
+          foreignField: "_id",
+          as: "address",
+        },
+      },
+      { $unwind: "$address" },
+      {
+        $addFields: {
+          cityKey: { $toLower: { $trim: { input: { $ifNull: ["$address.city", ""] } } } },
+        },
+      },
+      { $match: { cityKey: { $ne: "" } } },
+      {
+        $group: {
+          _id: "$cityKey",
+          city: { $first: "$address.city" },
+          state: { $first: "$address.state" },
+          orders: { $sum: 1 },
+          customers: { $addToSet: "$userId" },
+          lat: { $avg: "$address.lat" },
+          lng: { $avg: "$address.lng" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          city: 1,
+          state: 1,
+          orders: 1,
+          customers: { $size: "$customers" },
+          lat: 1,
+          lng: 1,
+        },
+      },
+      { $sort: { orders: -1 } },
+    ]);
+    const totalOrders = rows.reduce((a, r) => a + r.orders, 0);
+    return {
+      totalOrders,
+      cities: rows.map((r) => ({
+        ...r,
+        pct: totalOrders ? Math.round((r.orders / totalOrders) * 100) : 0,
+      })),
+    };
+  };
+
   const getSellerCustomers = (sellerId, { search, minOrders, page, limit }) => {
     page = page ? parseInt(page) : 1;
     limit = limit ? parseInt(limit) : 10;
@@ -837,6 +937,7 @@ module.exports = () => {
     getSellerOrders,
     countSellerOrders,
     getSellerCustomers,
+    getSellerCustomerCities,
     sellerAcceptOrder,
     sellerRejectOrder,
     sendDeliveryOtp,

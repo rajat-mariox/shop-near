@@ -7,6 +7,34 @@ const User = require("../models/User");
 // gitignored hai, prod par FIREBASE_SERVICE_ACCOUNT env se path override kar sakte hain
 let initialized = false;
 
+/**
+ * Service account env se (prod/deploy ke liye, file commit nahi karni padti):
+ *   1. FIREBASE_SERVICE_ACCOUNT_JSON  = poora JSON (raw ya base64)
+ *   2. FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY
+ *      (private key me newlines "\n" likhe ho sakte hain)
+ *   3. fallback: FIREBASE_SERVICE_ACCOUNT (file path) ya firebase-service-account.json
+ */
+const loadServiceAccount = () => {
+  const rawJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (rawJson) {
+    const text = rawJson.trim().startsWith("{")
+      ? rawJson
+      : Buffer.from(rawJson, "base64").toString("utf8");
+    return JSON.parse(text);
+  }
+  if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
+    return {
+      project_id: process.env.FIREBASE_PROJECT_ID,
+      client_email: process.env.FIREBASE_CLIENT_EMAIL,
+      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+    };
+  }
+  const serviceAccountPath =
+    process.env.FIREBASE_SERVICE_ACCOUNT ||
+    path.join(__dirname, "../../firebase-service-account.json");
+  return require(serviceAccountPath);
+};
+
 const initFirebase = () => {
   if (initialized || getApps().length > 0) {
     initialized = true;
@@ -14,11 +42,7 @@ const initFirebase = () => {
   }
 
   try {
-    const serviceAccountPath =
-      process.env.FIREBASE_SERVICE_ACCOUNT ||
-      path.join(__dirname, "../../firebase-service-account.json");
-
-    const serviceAccount = require(serviceAccountPath);
+    const serviceAccount = loadServiceAccount();
 
     initializeApp({
       credential: cert(serviceAccount),
@@ -50,8 +74,15 @@ module.exports = () => {
       android: {
         priority: "high",
         notification: {
-          sound: "default",
-          channelId: "default",
+          // App (MainApplication.kt) is channel ko HIGH importance se banata hai:
+          // heads-up + sound. Galat id par Android silent fallback channel use karta hai.
+          channelId: "order_updates",
+          icon: "ic_notification",
+          color: "#FF6051",
+          defaultSound: true,
+          defaultVibrateTimings: true,
+          priority: "high",
+          visibility: "public",
         },
       },
     };
@@ -142,7 +173,9 @@ module.exports = () => {
       body: extra.body || msg.body,
       data: {
         type: "order",
-        orderId: orderId,
+        // App tracking screen Mongo _id se fetch karti hai; ORD- number alag field me
+        orderId: String(order._id || orderId),
+        orderNumber: orderId,
         status: status,
         ...(extra.data || {}),
       },

@@ -14,6 +14,22 @@ const CategorySchema = new Schema(
       default: "",
     },
     rank: { type: Number, default: 1, required: [true, "rank is required!"] },
+    // Admin ke define kiye product fields; seller product form category select
+    // karte hi inhe dikhata hai (types: text, number, select, multiselect, boolean)
+    attributes: [
+      {
+        key: { type: String, required: true },
+        label: { type: String, required: true },
+        type: {
+          type: String,
+          enum: ["text", "number", "select", "multiselect", "boolean"],
+          default: "text",
+        },
+        options: [{ type: String }],
+        required: { type: Boolean, default: false },
+        unit: { type: String, default: "" },
+      },
+    ],
     isActive: {
       type: Boolean,
       default: true,

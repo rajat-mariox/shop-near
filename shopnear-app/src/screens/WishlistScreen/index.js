@@ -11,10 +11,12 @@ import {
 } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StandaloneTabBar } from '../../routes/MyBottomTabs';
 import { Colors } from '../../themes/Colors';
 import { fetchWishlist, removeFromWishlist } from '../../service/wishService';
 import { showToast } from '../../utils/toast';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const { width } = Dimensions.get('window');
 const THEME_COLOR = Colors.theme1;
@@ -109,9 +111,10 @@ const WishlistScreen = ({ navigation }) => {
 
   return (
     /* Navigator status bar area khud handle karta hai, isliye sirf bottom edge */
-    <SafeAreaView style={styles.screen} edges={['bottom']}>
+    /* Bottom inset tab bar khud sambhalta hai (figma: wishlist par bhi navbar) */
+    <SafeAreaView style={styles.screen} edges={[]}>
       {/* Header */}
-      <View style={styles.headerContainer}>
+      <ScreenHeader style={styles.headerContainer}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -120,7 +123,7 @@ const WishlistScreen = ({ navigation }) => {
         <Text style={styles.headerTitle} numberOfLines={1}>
           My Wishlist
         </Text>
-      </View>
+      </ScreenHeader>
 
       {loading ? (
         <View style={styles.stateBox}>
@@ -149,6 +152,8 @@ const WishlistScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         />
       )}
+      {/* Profile se aaye hain, isliye Profile tab active */}
+      <StandaloneTabBar activeName="Profile" />
     </SafeAreaView>
   );
 };

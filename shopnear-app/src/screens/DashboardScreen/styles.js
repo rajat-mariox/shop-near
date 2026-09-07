@@ -655,4 +655,41 @@ export const styles = StyleSheet.create({
         textAlign: 'center',
         alignSelf: 'stretch',
     },
+    // "Shops Near You" empty state (location nahi / radius me shop nahi)
+    shopsEmpty: {
+        alignItems: 'center',
+        paddingVertical: verticalScale(18),
+        paddingHorizontal: scale(20),
+        marginTop: verticalScale(8),
+        borderRadius: moderateScale(12),
+        backgroundColor: '#F4F6F5',
+    },
+    shopsEmptyTitle: {
+        ...F,
+        fontSize: fontScale(14),
+        fontWeight: 'bold',
+        color: '#0A130F',
+        marginTop: verticalScale(8),
+        textAlign: 'center',
+    },
+    shopsEmptyText: {
+        ...F,
+        fontSize: fontScale(12),
+        color: '#6B736F',
+        marginTop: verticalScale(4),
+        textAlign: 'center',
+    },
+    shopsEmptyBtn: {
+        marginTop: verticalScale(12),
+        backgroundColor: Colors.theme1,
+        borderRadius: moderateScale(8),
+        paddingHorizontal: scale(18),
+        paddingVertical: verticalScale(8),
+    },
+    shopsEmptyBtnText: {
+        ...F,
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: fontScale(13),
+    },
 });

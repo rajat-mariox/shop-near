@@ -51,6 +51,7 @@ module.exports = () => {
             subCategory: 1,
             rank: 1,
             description: 1,
+            attributes: 1,
           },
         },
       ]);
@@ -140,6 +141,7 @@ module.exports = () => {
             image: 1,
             rank: 1,
             description: 1,
+            attributes: 1,
             totalSubCategories: {
               $ifNull: ["$subCategory.totalSubCategories", ""],
             },

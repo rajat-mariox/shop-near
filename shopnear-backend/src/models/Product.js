@@ -64,6 +64,17 @@ const ProductsSchema = new Schema(
     ],
 
     features: { type: String, default: "" },
+    // Category ke admin-defined fields ki values (label ka snapshot saath me,
+    // taaki category baad me badle to purane products na bigdein)
+    attributes: [
+      {
+        key: { type: String },
+        label: { type: String },
+        type: { type: String, default: "text" },
+        unit: { type: String, default: "" },
+        value: { type: Schema.Types.Mixed },
+      },
+    ],
 
     // ---------------- FLAGS ----------------
     isFeatured: { type: Boolean, default: false },

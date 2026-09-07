@@ -7,7 +7,18 @@ import {
   deleteCategory as deleteCategoryApi,
 } from "../../api/adminApi";
 
-const EMPTY_CAT = { categoryName: "", description: "", rank: 1 };
+const EMPTY_CAT = { categoryName: "", description: "", rank: 1, attributes: [] };
+
+// Category-wise product fields: seller ke Add Product form me category select
+// karte hi ye fields dikhte hain. Admin yahin define karta hai, kuch fixed nahi.
+const ATTR_TYPES = [
+  { value: "text", label: "Text" },
+  { value: "number", label: "Number" },
+  { value: "select", label: "Dropdown (single)" },
+  { value: "multiselect", label: "Multi-select" },
+  { value: "boolean", label: "Yes / No" },
+];
+const EMPTY_ATTR = { label: "", type: "text", options: "", required: false, unit: "" };
 
 const CategoryList = () => {
   const [categories, setCategories] = useState([]);
@@ -84,6 +95,15 @@ const CategoryList = () => {
       categoryName: c.categoryName || "",
       description: c.description || "",
       rank: c.rank || 1,
+      // options array ko comma string me dikhate hain, save par wapas split hota hai
+      attributes: (c.attributes || []).map((a) => ({
+        key: a.key || "",
+        label: a.label || "",
+        type: a.type || "text",
+        options: Array.isArray(a.options) ? a.options.join(", ") : a.options || "",
+        required: !!a.required,
+        unit: a.unit || "",
+      })),
     });
     setPreview(c.image || "");
     if (fileRef.current) fileRef.current.value = "";
@@ -104,6 +124,21 @@ const CategoryList = () => {
       fd.append("categoryName", newCat.categoryName);
       fd.append("description", newCat.description || "");
       fd.append("rank", newCat.rank || 1);
+      // Dynamic product fields: label khali wali rows chhod do
+      const attrs = (newCat.attributes || [])
+        .filter((a) => a.label && a.label.trim())
+        .map((a) => ({
+          key: a.key || undefined,
+          label: a.label.trim(),
+          type: a.type || "text",
+          options: (a.options || "")
+            .split(",")
+            .map((o) => o.trim())
+            .filter(Boolean),
+          required: !!a.required,
+          unit: (a.unit || "").trim(),
+        }));
+      fd.append("attributes", JSON.stringify(attrs));
       const file = fileRef.current?.files?.[0];
       if (file) fd.append("image", file);
 
@@ -124,6 +159,16 @@ const CategoryList = () => {
       setSaving(false);
     }
   };
+
+  const addAttr = () =>
+    setNewCat((c) => ({ ...c, attributes: [...(c.attributes || []), { ...EMPTY_ATTR }] }));
+  const updateAttr = (i, patch) =>
+    setNewCat((c) => ({
+      ...c,
+      attributes: c.attributes.map((a, idx) => (idx === i ? { ...a, ...patch } : a)),
+    }));
+  const removeAttr = (i) =>
+    setNewCat((c) => ({ ...c, attributes: c.attributes.filter((_, idx) => idx !== i) }));
 
   const totalPages = Math.ceil(total / limit) || 1;
 
@@ -414,6 +459,117 @@ const CategoryList = () => {
                 </div>
                 <div style={{ fontSize: 12, color: "#888", marginTop: 6 }}>
                   App ke home screen par category chip me yahi image dikhti hai.
+                </div>
+              </div>
+
+              {/* Product fields for this category */}
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 6,
+                  }}
+                >
+                  <label className="form-label" style={{ marginBottom: 0 }}>
+                    Product Fields
+                  </label>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={addAttr}>
+                    + Add Field
+                  </button>
+                </div>
+                <div style={{ fontSize: 12, color: "#888", marginBottom: 10 }}>
+                  Seller jab is category ka product add karega to ye fields form me
+                  dikhenge (jaise Size, Material, Warranty). Dropdown ke options comma
+                  se alag likhein.
+                </div>
+                {(newCat.attributes || []).length === 0 ? (
+                  <div style={{ fontSize: 13, color: "#aaa", padding: "8px 0" }}>
+                    Koi extra field nahi. Sirf common fields (name, price, stock, description) dikhenge.
+                  </div>
+                ) : null}
+                <div style={{ display: "grid", gap: 10 }}>
+                  {(newCat.attributes || []).map((a, i) => {
+                    const needsOptions = a.type === "select" || a.type === "multiselect";
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          border: "1px solid #e7e7e7",
+                          borderRadius: 10,
+                          padding: 10,
+                          display: "grid",
+                          gap: 8,
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <input
+                            className="form-input"
+                            style={{ flex: 2 }}
+                            placeholder="Field name (e.g. Size)"
+                            value={a.label}
+                            onChange={(e) => updateAttr(i, { label: e.target.value })}
+                          />
+                          <select
+                            className="form-input"
+                            style={{ flex: 1.4 }}
+                            value={a.type}
+                            onChange={(e) => updateAttr(i, { type: e.target.value })}
+                          >
+                            {ATTR_TYPES.map((t) => (
+                              <option key={t.value} value={t.value}>
+                                {t.label}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            title="Remove field"
+                            onClick={() => removeAttr(i)}
+                          >
+                            X
+                          </button>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          {needsOptions ? (
+                            <input
+                              className="form-input"
+                              style={{ flex: 2 }}
+                              placeholder="Options, comma separated (e.g. S, M, L, XL)"
+                              value={a.options}
+                              onChange={(e) => updateAttr(i, { options: e.target.value })}
+                            />
+                          ) : (
+                            <input
+                              className="form-input"
+                              style={{ flex: 2 }}
+                              placeholder="Unit (optional, e.g. kg, cm, months)"
+                              value={a.unit}
+                              onChange={(e) => updateAttr(i, { unit: e.target.value })}
+                            />
+                          )}
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              fontSize: 13,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={!!a.required}
+                              onChange={(e) => updateAttr(i, { required: e.target.checked })}
+                            />
+                            Required
+                          </label>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

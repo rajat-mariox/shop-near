@@ -17,6 +17,7 @@ import { Colors } from '../../themes/Colors';
 import { fetchOrderById } from '../../service/orderService';
 import { showToast } from '../../utils/toast';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const THEME_COLOR = Colors.theme1;
 // OEM system fonts par text-cut se bachne ke liye
@@ -145,7 +146,7 @@ const OrderTrackingScreen = ({ navigation, route }) => {
     /* Navigator status bar area khud handle karta hai, isliye sirf bottom edge */
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       {/* Header */}
-      <View style={styles.headerContainer}>
+      <ScreenHeader style={styles.headerContainer}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -157,7 +158,7 @@ const OrderTrackingScreen = ({ navigation, route }) => {
         <TouchableOpacity onPress={handleCall} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Feather name="phone-call" size={moderateScale(19)} color="#fff" />
         </TouchableOpacity>
-      </View>
+      </ScreenHeader>
 
       {loading ? (
         <View style={styles.stateBox}>

@@ -1,14 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Modal, Dimensions } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { AppImages } from '../../constants/app.image';
 import { Colors } from '../../themes/Colors';
 import { fetchProductDetail, fetchProductRatings } from '../../service/productService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { addToCart } from '../../service/cartService';
-import { addToWishlist } from '../../service/wishService';
+import { addToWishlist, removeFromWishlist, fetchWishlist } from '../../service/wishService';
 import { showToast } from '../../utils/toast';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
+import ScreenHeader from '../../components/ScreenHeader';
+
+// Wishlist API ke items se productId ka Set (item.productId object ya id dono ho sakta hai)
+const wishlistIdSet = (data) => {
+  const items = Array.isArray(data) ? data : data?.items || data?.wishlist || [];
+  return new Set(
+    items.map((i) => String(i.productId?._id || i.productId || i.product?._id || i._id)),
+  );
+};
+
+// Category-specific field value ko dikhane layak text me badlo
+// (boolean -> Yes/No, multiselect -> comma list, number -> unit ke saath)
+const formatAttrValue = (a) => {
+  if (a.type === 'boolean' || typeof a.value === 'boolean') return a.value ? 'Yes' : 'No';
+  if (Array.isArray(a.value)) return a.value.join(', ');
+  const v = a.value === undefined || a.value === null ? '' : String(a.value);
+  return a.unit ? `${v} ${a.unit}` : v;
+};
 
 const THEME_COLOR = Colors.theme1;
 // Accept productId as prop (from navigation)
@@ -24,6 +42,8 @@ const ProductDetailScreen = ({ route, navigation }) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   // Reviews (ratings collection se — order deliver hone ke baad diye gaye reviews)
   const [reviews, setReviews] = useState(null);
+  // Review photo full-screen viewer (tap on thumbnail)
+  const [viewerImage, setViewerImage] = useState(null);
 
   // Get productId from navigation params
   const productId = route?.params?.productId;
@@ -106,19 +126,42 @@ const ProductDetailScreen = ({ route, navigation }) => {
   const handleBuyNow = () => handleAddToCart(true);
 
   const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  // Screen khulte hi pata karo ye product wishlist me hai ya nahi (heart bhara dikhe)
+  useEffect(() => {
+    if (!productId) return;
+    fetchWishlist()
+      .then((res) => {
+        if (res.success) setIsWishlisted(wishlistIdSet(res.data).has(String(productId)));
+      })
+      .catch(() => {});
+  }, [productId]);
+
+  // Heart toggle: wishlist me hai to hatao, nahi to add karo
   const handleToggleWishlist = async () => {
     if (!product) return;
     if (wishlistLoading) return;
     setWishlistLoading(true);
     try {
-      const res = await addToWishlist({ productId: product._id });
-      if (res.success) {
-        setIsWishlisted(true);
+      if (isWishlisted) {
+        const res = await removeFromWishlist({ productId: product._id });
+        if (res.success) {
+          setIsWishlisted(false);
+          showToast('Removed from wishlist');
+        } else {
+          showToast(res.message || 'Failed to remove from wishlist', 'error');
+        }
       } else {
-        showToast(res.message || 'Failed to add to wishlist');
+        const res = await addToWishlist({ productId: product._id });
+        if (res.success) {
+          setIsWishlisted(true);
+          showToast('Added to wishlist');
+        } else {
+          showToast(res.message || 'Failed to add to wishlist', 'error');
+        }
       }
     } catch (e) {
-      showToast('Error adding to wishlist');
+      showToast('Wishlist update failed', 'error');
     } finally {
       setWishlistLoading(false);
     }
@@ -128,7 +171,7 @@ const ProductDetailScreen = ({ route, navigation }) => {
     /* Navigator upar status bar ki jagah khud bhar deta hai, isliye sirf bottom edge */
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['bottom']}>
       {/* Custom Header */}
-      <View style={styles.headerContainer}>
+      <ScreenHeader style={styles.headerContainer}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <AntDesign name="arrowleft" size={moderateScale(24)} color="#fff" />
         </TouchableOpacity>
@@ -136,7 +179,7 @@ const ProductDetailScreen = ({ route, navigation }) => {
           Product Details
         </Text>
         <View style={styles.headerIcons}></View>
-      </View>
+      </ScreenHeader>
       {/* Main Content with ScrollView */}
       <ScrollView
         style={{ flex: 1, padding: moderateScale(5) }}
@@ -285,6 +328,31 @@ const ProductDetailScreen = ({ route, navigation }) => {
                 </View>
               )}
 
+              {/* Specifications: category ke admin-defined fields jo seller ne bhare */}
+              {Array.isArray(product?.attributes) && product.attributes.length > 0 && (
+                <View style={{ marginTop: verticalScale(6), marginBottom: verticalScale(8) }}>
+                  <Text style={{ fontWeight: 'bold', color: Colors.theme1, fontSize: fontScale(16), marginBottom: verticalScale(6), fontFamily: 'sans-serif' }}>Specifications</Text>
+                  <View style={{ backgroundColor: '#F6F6F9', borderRadius: moderateScale(10), paddingHorizontal: scale(12), paddingVertical: verticalScale(2) }}>
+                    {product.attributes.map((a, i) => (
+                      <View
+                        key={a.key || i}
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          paddingVertical: verticalScale(8),
+                          borderBottomWidth: i < product.attributes.length - 1 ? 1 : 0,
+                          borderBottomColor: '#E6E6EC',
+                        }}
+                      >
+                        <Text style={{ color: '#666', fontSize: fontScale(13.5), flex: 1, fontFamily: 'sans-serif' }}>{a.label}</Text>
+                        <Text style={{ color: '#222', fontSize: fontScale(13.5), flex: 1.4, textAlign: 'right', fontFamily: 'sans-serif' }}>{formatAttrValue(a)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
               {/* Seller Info Section */}
               {product?.seller && (
                 <View style={{ marginTop: verticalScale(4) }}>
@@ -383,6 +451,29 @@ const ProductDetailScreen = ({ route, navigation }) => {
                 </Text>
               </View>
 
+              {/* Review photo viewer */}
+              <Modal
+                visible={!!viewerImage}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setViewerImage(null)}>
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center' }}>
+                  <TouchableOpacity
+                    onPress={() => setViewerImage(null)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    style={{ position: 'absolute', top: verticalScale(40), right: scale(18), zIndex: 2, padding: moderateScale(6) }}>
+                    <AntDesign name="close" size={moderateScale(24)} color="#fff" />
+                  </TouchableOpacity>
+                  {!!viewerImage && (
+                    <Image
+                      source={{ uri: viewerImage }}
+                      style={{ width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.8 }}
+                      resizeMode="contain"
+                    />
+                  )}
+                </View>
+              </Modal>
+
               {/* Reviews — delivered orders ke ratings/reviews yahan dikhte hain */}
               <View style={{ marginTop: verticalScale(16) }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: verticalScale(8) }}>
@@ -430,6 +521,32 @@ const ProductDetailScreen = ({ route, navigation }) => {
                       </View>
                       {!!r.reviewText && (
                         <Text style={{ color: '#555', fontSize: fontScale(13) }}>{r.reviewText}</Text>
+                      )}
+                      {/* Review photos (S3 par upload, Rating.reviewImages) — tap par full screen */}
+                      {Array.isArray(r.reviewImages) && r.reviewImages.length > 0 && (
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: verticalScale(8) }}>
+                          {r.reviewImages.map((img, idx) => {
+                            const uri = typeof img === 'string' ? img : img?.url;
+                            if (!uri) return null;
+                            return (
+                              <TouchableOpacity
+                                key={img?._id || idx}
+                                activeOpacity={0.85}
+                                onPress={() => setViewerImage(uri)}
+                                style={{
+                                  width: moderateScale(64),
+                                  height: moderateScale(64),
+                                  borderRadius: moderateScale(8),
+                                  overflow: 'hidden',
+                                  marginRight: scale(8),
+                                  marginBottom: verticalScale(6),
+                                  backgroundColor: '#EEE',
+                                }}>
+                                <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
                       )}
                       <Text style={{ color: '#AAA', fontSize: fontScale(11), marginTop: verticalScale(4) }}>
                         {r.createdAt

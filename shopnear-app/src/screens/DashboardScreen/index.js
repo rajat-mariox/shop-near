@@ -26,6 +26,7 @@ import { imageSource } from '../../utils/media';
 import { getTokenStorage } from '../../utils/tokenStorage';
 import { fetchUserProfile } from '../../service/userProfile';
 import { fetchHomeScreen } from '../../service/homeService';
+import { getCurrentLocation, reverseGeocodeLabel } from '../../utils/location';
 
 // Header ka wrapper — admin se aaya background (image/video) ya default asset.
 // Image ke liye ImageBackground zaroori hai: content-sized parent me percentage/
@@ -64,12 +65,15 @@ const HeaderContainer = ({ headerBg, style, children }) => {
 };
 
 // Banner slide ka admin-controlled background (image/video). Video fail ho
-// (URL toota, network nahi) to black box ki jagah default fence design dikhta hai.
+// (URL toota, network nahi) to black box ki jagah kuch nahi dikhta.
 const BannerSlideBg = ({ banner }) => {
   const [failed, setFailed] = useState(false);
 
+  // Admin ne slide ka background na diya ho (ya load fail ho) to kuch nahi:
+  // header ka background hi dikhta hai. Pehle yahan default wooden fence tha,
+  // jo admin panel se control nahi hota tha, isliive hataya.
   if (!banner.bgMedia || failed) {
-    return <Image source={AppImages.headerFence} style={styles.bannerFence} />;
+    return null;
   }
   if (banner.bgMediaType === 'video') {
     return (
@@ -125,36 +129,28 @@ const Dashboard = (props) => {
   // Header status bar ke peeche tak jaata hai (onboarding screen ki tarah)
   const insets = useSafeAreaInsets();
   const [userProfile, setUserProfile] = useState(null);
-  // Abhi live nahi (wallet, camera search, voice search) — ek hi Coming Soon popup
+  // Abhi live nahi (camera search) — Coming Soon popup. Wallet aur voice search hata diye gaye.
   const [comingSoon, setComingSoon] = useState(null); // { title, subtitle, icon } | null
   const COMING_SOON = {
-    wallet: {
-      title: 'Wallet',
-      subtitle: 'Rewards, cashback aur wallet balance — jald hi aa raha hai!',
-      icon: AppImages.gift,
-    },
     camera: {
       title: 'Camera Search',
       subtitle: 'Photo khinch kar product dhoondho — jald hi aa raha hai!',
       icon: AppImages.camera,
       iconTint: '#fff', // red PNG orange circle par gayab ho jata hai
     },
-    mic: {
-      title: 'Voice Search',
-      subtitle: 'Bol kar product dhoondho — jald hi aa raha hai!',
-      icon: AppImages.mic,
-      iconTint: '#fff',
-    },
   };
   const [homeData, setHomeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeCategory, setActiveCategory] = useState(null);
+  // Live location - app khulte hi GPS se; isi ke around "Shops Near You" aati hain.
+  // Order hamesha checkout par chune gaye saved address par jaata hai, is se nahi.
+  const [liveLocation, setLiveLocation] = useState(null); // { lat, lng, label }
 
-  const loadHomeScreen = useCallback(() => {
+  const loadHomeScreen = useCallback((coords = null) => {
     setLoading(true);
     setError(null);
-    fetchHomeScreen().then((result) => {
+    fetchHomeScreen(coords).then((result) => {
       if (result.success) {
         setHomeData(result.data);
       } else {
@@ -164,14 +160,27 @@ const Dashboard = (props) => {
     });
   }, []);
 
+  // GPS lo -> home load karo (deny/fail par bina coords: backend saved address try karta hai)
+  const locateAndLoad = useCallback(async () => {
+    const coords = await getCurrentLocation();
+    if (coords) {
+      setLiveLocation({ ...coords, label: null });
+      // Label alag se - geocode slow ho to home data ruke nahi
+      reverseGeocodeLabel(coords).then((label) => {
+        if (label) setLiveLocation((prev) => (prev ? { ...prev, label } : prev));
+      });
+    }
+    loadHomeScreen(coords);
+  }, [loadHomeScreen]);
+
   useEffect(() => {
     fetchUserProfile().then((result) => {
       if (result.success) setUserProfile(result.data);
     });
-    loadHomeScreen();
+    locateAndLoad();
     // FCM token backend par save (order status / delivery OTP push ke liye)
     registerDeviceToken();
-  }, [loadHomeScreen]);
+  }, [locateAndLoad]);
 
   const requireLogin = async (routeName, params) => {
     const token = await getTokenStorage();
@@ -182,17 +191,26 @@ const Dashboard = (props) => {
   const bannerTarget = (banner) =>
     banner.redirectType === 'product' && banner.productId ? banner.productId : null;
 
-  const deliveryLocation = homeData?.delivery?.location || userProfile?.fullName || '';
+  // Header me live location ka label; geocode na mila/permission nahi to saved address
+  const deliveryLocation =
+    liveLocation?.label ||
+    (liveLocation ? 'Current location' : '') ||
+    homeData?.delivery?.location ||
+    userProfile?.fullName ||
+    '';
 
   const renderHeader = () => (
     <HeaderContainer
       headerBg={homeData?.headerBg}
       style={[styles.header, { paddingTop: insets.top + HEADER_TOP_PADDING }]}>
-      {/* Design ke festive string lights, status bar ke theek neeche */}
-      <Image
-        source={AppImages.headerLights}
-        style={[styles.headerLights, { top: insets.top }]}
-      />
+      {/* Festive string lights, status bar ke theek neeche. Admin panel (Banners >
+          Home Header Background) se on/off hoti hain: headerBg.showLights */}
+      {homeData?.headerBg?.showLights !== false && (
+        <Image
+          source={AppImages.headerLights}
+          style={[styles.headerLights, { top: insets.top }]}
+        />
+      )}
       <View style={styles.headerTopRow}>
         <View style={{ flex: 1 }}>
           <Text style={styles.deliveryLabel}>Delivery in</Text>
@@ -213,15 +231,6 @@ const Dashboard = (props) => {
         </View>
 
         <View style={styles.headerActions}>
-          {homeData?.wallet?.balance != null && (
-            <TouchableOpacity
-              style={styles.walletChip}
-              activeOpacity={0.8}
-              onPress={() => setComingSoon(COMING_SOON.wallet)}>
-              <Image source={AppImages.gift} style={styles.walletIcon} />
-              <Text style={styles.walletText}>₹ {homeData.wallet.balance}</Text>
-            </TouchableOpacity>
-          )}
           <TouchableOpacity
             style={styles.menuButton}
             onPress={() => requireLogin('ProfileScreen')}>
@@ -236,17 +245,6 @@ const Dashboard = (props) => {
         onPress={() => navigation.navigate('Search')}>
         <AntDesign name="search1" size={moderateScale(18)} color="#353535" />
         <Text style={styles.searchPlaceholder}>Search</Text>
-        <TouchableOpacity
-          hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-          onPress={() => setComingSoon(COMING_SOON.camera)}>
-          <Image source={AppImages.camera} style={styles.searchIcon} />
-        </TouchableOpacity>
-        <View style={styles.searchDivider} />
-        <TouchableOpacity
-          hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-          onPress={() => setComingSoon(COMING_SOON.mic)}>
-          <Image source={AppImages.mic} style={styles.searchIcon} />
-        </TouchableOpacity>
       </TouchableOpacity>
 
       {homeData?.banners && homeData.banners.length > 0 && (
@@ -300,7 +298,13 @@ const Dashboard = (props) => {
           return (
             <TouchableOpacity
               key={cat._id || idx}
-              onPress={() => setActiveCategory(cat._id)}
+              onPress={() => {
+                setActiveCategory(cat._id);
+                navigation.navigate('ShopsByCategory', {
+                  categoryId: cat._id,
+                  categoryName: cat.categoryName,
+                });
+              }}
               style={[styles.chip, isActive ? styles.chipActive : styles.chipInactive]}>
               <Image source={imageSource(cat.image, AppImages.shop)} style={styles.chipImage} />
               <Text
@@ -318,8 +322,37 @@ const Dashboard = (props) => {
     );
   };
 
+  // Shops na hon to wajah dikhao: location hi nahi mili vs radius me koi shop nahi
+  const renderShopsEmpty = () => {
+    const hasLocation = homeData?.nearby?.hasLocation;
+    const radiusKm = homeData?.nearby?.radiusKm;
+    return (
+      <View style={styles.shopsEmpty}>
+        <Ionicons
+          name={hasLocation ? 'storefront-outline' : 'location-outline'}
+          size={moderateScale(28)}
+          color="#9AA39E"
+        />
+        <Text style={styles.shopsEmptyTitle}>
+          {hasLocation ? 'Aapke area mein abhi koi shop nahi' : 'Location on karein'}
+        </Text>
+        <Text style={styles.shopsEmptyText}>
+          {hasLocation
+            ? `Aapke ${radiusKm ? `${radiusKm} km ` : ''}ke aas-paas abhi koi shop nahi hai. Jald hi aayengi!`
+            : 'Aas-paas ki shops dekhne ke liye location permission dein'}
+        </Text>
+        <TouchableOpacity style={styles.shopsEmptyBtn} onPress={locateAndLoad}>
+          <Text style={styles.shopsEmptyBtnText}>
+            {hasLocation ? 'Refresh' : 'Enable location'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   const renderShops = () => {
-    if (!homeData?.nearbyShops?.length) return null;
+    if (!homeData) return null;
+    const shops = homeData.nearbyShops || [];
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
@@ -332,6 +365,7 @@ const Dashboard = (props) => {
           Verified local sellers delivering in under 30 mins
         </Text>
 
+        {shops.length === 0 ? renderShopsEmpty() : (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -404,6 +438,7 @@ const Dashboard = (props) => {
             </View>
           ))}
         </ScrollView>
+        )}
       </View>
     );
   };

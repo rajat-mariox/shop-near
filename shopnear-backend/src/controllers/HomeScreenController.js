@@ -39,6 +39,7 @@ module.exports = () => {
 
         // Nearby Shops/Sellers - Dynamic from database
         nearbyShops: homeData.nearbyShops,
+        nearby: homeData.nearby,
 
         // Dynamic Offers - From OffersService
         offers: offers,

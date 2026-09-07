@@ -17,6 +17,7 @@ import { addToCart } from '../../service/cartService';
 import { showToast } from '../../utils/toast';
 import { Colors } from '../../themes/Colors';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const THEME_COLOR = Colors.theme1;
 // OEM system fonts par text-cut se bachne ke liye
@@ -224,7 +225,7 @@ const OrderScreen = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.headerContainer}>
+      <ScreenHeader style={styles.headerContainer}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -233,7 +234,7 @@ const OrderScreen = () => {
         <Text style={styles.headerTitle} numberOfLines={1}>
           My Orders
         </Text>
-      </View>
+      </ScreenHeader>
 
       {/* iOS-style segmented control (figma 351:9233) */}
       <View style={styles.segmentBar}>

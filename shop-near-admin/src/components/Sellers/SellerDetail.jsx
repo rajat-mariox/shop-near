@@ -241,6 +241,23 @@ const SellerDetail = () => {
             label="Address"
             value={`${seller.address || ""} ${seller.street || ""} ${seller.city || ""} ${seller.pincode || ""}`}
           />
+          {/* Exact pin - isi se user app me nearby shops nikalti hain; na ho to approve nahi hoga */}
+          <InfoRow
+            label="Shop Location"
+            value={
+              seller.lat && seller.lng ? (
+                <a
+                  href={`https://www.google.com/maps?q=${seller.lat},${seller.lng}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {Number(seller.lat).toFixed(5)}, {Number(seller.lng).toFixed(5)} (open map)
+                </a>
+              ) : (
+                <span style={{ color: "#d97706" }}>Not set - cannot approve</span>
+              )
+            }
+          />
           <InfoRow
             label="Shop Timing"
             value={

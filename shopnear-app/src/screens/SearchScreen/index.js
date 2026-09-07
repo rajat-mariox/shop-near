@@ -16,10 +16,20 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { AppImages } from '../../constants/app.image';
 import { fetchProductsByCategory, searchProducts } from '../../service/productService';
 import { fetchSellerCategories, fetchSellers } from '../../service/sellerService';
-import { addToWishlist } from '../../service/wishService';
+import { addToWishlist, removeFromWishlist, fetchWishlist } from '../../service/wishService';
+import { showToast } from '../../utils/toast';
+// Wishlist API ke items se productId ka Set (item.productId object ya id dono ho sakta hai)
+const wishlistIdSet = (data) => {
+  const items = Array.isArray(data) ? data : data?.items || data?.wishlist || [];
+  return new Set(
+    items.map((i) => String(i.productId?._id || i.productId || i.product?._id || i._id)),
+  );
+};
+
 import ProductDetailPanel from './ProductDetailPanel';
 import { Colors } from '../../themes/Colors';
 import { fontScale, moderateScale } from '../../utils/responsive';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const THEME_COLOR = Colors.theme1;
 
@@ -244,17 +254,35 @@ const SearchScreen = ({ navigation, route }) => {
     setSearchOpen(false);
   };
 
+  // Mount par wishlist laao taaki pehle se wishlisted products ka heart bhara dikhe
+  useEffect(() => {
+    fetchWishlist()
+      .then((res) => {
+        if (res.success) setWishedIds(wishlistIdSet(res.data));
+      })
+      .catch(() => {});
+  }, []);
+
+  // Heart toggle (optimistic): wishlist me hai to hatao, nahi to add; API fail par revert
   const toggleWish = async (productId) => {
-    if (wishedIds.has(productId)) return; // already added
-    setWishedIds((prev) => new Set(prev).add(productId));
-    const result = await addToWishlist({ productId });
+    const wasWished = wishedIds.has(productId);
+    setWishedIds((prev) => {
+      const next = new Set(prev);
+      if (wasWished) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+    const result = wasWished
+      ? await removeFromWishlist({ productId })
+      : await addToWishlist({ productId });
     if (!result.success) {
-      // API fail hua to heart wapas hata do
       setWishedIds((prev) => {
         const next = new Set(prev);
-        next.delete(productId);
+        if (wasWished) next.add(productId);
+        else next.delete(productId);
         return next;
       });
+      showToast(result.message || 'Wishlist update failed', 'error');
     }
   };
 
@@ -399,7 +427,7 @@ const SearchScreen = ({ navigation, route }) => {
     <View style={styles.screen}>
       {/* Coral header — back, seller ka naam, heart, search.
           Detail khula ho to back pehle grid par wapas laata hai */}
-      <View style={styles.headerContainer}>
+      <ScreenHeader style={styles.headerContainer}>
         <TouchableOpacity
           onPress={() =>
             detailProductId ? setDetailProductId(null) : navigation.goBack()
@@ -418,7 +446,7 @@ const SearchScreen = ({ navigation, route }) => {
           onPress={() => (searchOpen ? clearSearch() : setSearchOpen(true))}>
           <AntDesign name={searchOpen ? 'close' : 'search1'} size={moderateScale(20)} color="#fff" />
         </TouchableOpacity>
-      </View>
+      </ScreenHeader>
 
       {/* Search input — header ke search icon se toggle */}
       {searchOpen ? (

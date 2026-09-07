@@ -1,4 +1,6 @@
 const RatingService = require("../services/RatingService");
+const PanelNotificationService = require("../services/PanelNotificationService");
+const fileUploadService = require("../util/s3");
 var ObjectId = require("mongoose").Types.ObjectId;
 
 module.exports = () => {
@@ -40,6 +42,21 @@ module.exports = () => {
       (p) => p.productId.toString() === productId
     )?.sellerId;
 
+    // Review photos (multipart field "images", app ke FeedbackScreen se) -> S3
+    const reviewImages = [];
+    if (req.files && req.files.images) {
+      const files = Array.isArray(req.files.images)
+        ? req.files.images
+        : [req.files.images];
+      for (const file of files) {
+        const uploadRes = await fileUploadService.uploadFileToAws(file);
+        const urls = Array.isArray(uploadRes.images)
+          ? uploadRes.images
+          : [uploadRes.images];
+        urls.forEach((url) => reviewImages.push({ url }));
+      }
+    }
+
     const newRating = await RatingService().addRating({
       userId,
       productId,
@@ -47,7 +64,11 @@ module.exports = () => {
       sellerId,
       rating,
       reviewText,
+      reviewImages,
     });
+
+    // Seller panel bell: naya review
+    PanelNotificationService().newReview(newRating, productId);
 
     req.rData = newRating;
     req.msg = "rating_submitted";

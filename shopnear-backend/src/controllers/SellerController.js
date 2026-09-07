@@ -1,6 +1,10 @@
 const SellerService = require("../services/SellerService");
+const PanelNotificationService = require("../services/PanelNotificationService");
+const { resolveProductAttributes } = require("../util/productAttributes");
 const ProductService = require("../services/ProductService");
 const Products = require("../models/Product");
+const Seller = require("../models/Seller");
+const { isValidCoords } = require("../util/geo");
 const fileUploadService = require("../util/s3");
 var ObjectId = require("mongoose").Types.ObjectId;
 
@@ -132,7 +136,29 @@ module.exports = () => {
     if (updateData.lat) updateData.lat = parseFloat(updateData.lat);
     if (updateData.lng) updateData.lng = parseFloat(updateData.lng);
 
+    // Approval ke liye submit (onboarding step 2) — shop ki exact location
+    // zaroori hai, warna nearby shops me kabhi nahi dikhegi
+    if (updateData.status === "pending_approval") {
+      let lat = updateData.lat;
+      let lng = updateData.lng;
+      if (!isValidCoords(lat, lng)) {
+        const existing = await Seller.findById(finalId).select("lat lng");
+        lat = existing?.lat;
+        lng = existing?.lng;
+      }
+      if (!isValidCoords(lat, lng)) {
+        req.error =
+          "Shop location is required. Please set your shop location on the map before submitting.";
+        return next();
+      }
+    }
+
     await SellerService().updateSeller(finalId, updateData);
+
+    // Admin panel bell: naya seller verification ke liye aaya
+    if (updateData.status === "pending_approval") {
+      PanelNotificationService().sellerPendingApproval(finalId);
+    }
 
     req.rData = {};
     req.msg = "success";
@@ -319,6 +345,18 @@ module.exports = () => {
     let { id } = req.params;
 
     const finalId = sellerId || id;
+
+    // Bina location wali shop approve nahi — user app me nearby list me aa hi nahi paayegi
+    const current = await Seller.findById(finalId).select("lat lng");
+    if (!current) {
+      req.error = "Seller not found";
+      return next();
+    }
+    if (!isValidCoords(current.lat, current.lng)) {
+      req.error =
+        "Cannot approve: seller has not set a shop location (lat/lng). Ask the seller to set it from onboarding.";
+      return next();
+    }
 
     let seller = await SellerService().updateSeller(finalId, {
       status: "approved",
@@ -533,6 +571,12 @@ module.exports = () => {
       productData.highlights = JSON.parse(productData.highlights);
     }
 
+    // Category-specific fields (admin ne category par define kiye): validate + normalize
+    productData.attributes = await resolveProductAttributes({
+      categoryId: productData.categoryId,
+      input: productData.attributes,
+    });
+
     let product = await ProductService().createSellerProduct(productData);
 
     req.msg = "product_created";
@@ -606,6 +650,14 @@ module.exports = () => {
     }
     if (typeof updateData.highlights === "string") {
       updateData.highlights = JSON.parse(updateData.highlights);
+    }
+
+    if (updateData.attributes !== undefined) {
+      updateData.attributes = await resolveProductAttributes({
+        categoryId: updateData.categoryId,
+        productId: id,
+        input: updateData.attributes,
+      });
     }
 
     let product = await ProductService().updateSellerProduct(

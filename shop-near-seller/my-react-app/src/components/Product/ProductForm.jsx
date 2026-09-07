@@ -67,12 +67,95 @@ const ImageIcon = () => (
   </svg>
 );
 
+/**
+ * Category ka admin-defined field (Category.attributes) -> input.
+ * text/number: input, select: dropdown, multiselect: checkbox chips, boolean: Yes/No.
+ */
+const DynamicField = ({ attr, value, onChange }) => {
+  const label = attr.label + (attr.unit ? ` (${attr.unit})` : "") + (attr.required ? " *" : "");
+  if (attr.type === "select" || attr.type === "boolean") {
+    const options =
+      attr.type === "boolean"
+        ? [
+            { value: "true", label: "Yes" },
+            { value: "false", label: "No" },
+          ]
+        : (attr.options || []).map((o) => ({ value: o, label: o }));
+    const current = value === undefined || value === null ? "" : String(value);
+    return (
+      <Field label={label}>
+        <div style={selectWrapStyle}>
+          <select
+            value={current}
+            onChange={(e) => onChange(e.target.value)}
+            style={{ ...fieldStyle, appearance: "none", color: current ? "#454545" : "#737373", cursor: "pointer" }}
+          >
+            <option value="">Select {attr.label.toLowerCase()}</option>
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <img src={icChevronDown} alt="" style={chevronStyle} />
+        </div>
+      </Field>
+    );
+  }
+  if (attr.type === "multiselect") {
+    const selected = Array.isArray(value) ? value : [];
+    const toggle = (opt) =>
+      onChange(selected.includes(opt) ? selected.filter((v) => v !== opt) : [...selected, opt]);
+    return (
+      <Field label={label}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {(attr.options || []).map((opt) => {
+            const on = selected.includes(opt);
+            return (
+              <button
+                type="button"
+                key={opt}
+                onClick={() => toggle(opt)}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 999,
+                  border: on ? "1.6px solid #FF6051" : "1.6px solid #D1D1D1",
+                  background: on ? "#FFF1EF" : "#fff",
+                  color: on ? "#FF6051" : "#454545",
+                  fontFamily: FONT,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+    );
+  }
+  return (
+    <Field label={label}>
+      <input
+        type={attr.type === "number" ? "number" : "text"}
+        value={value === undefined || value === null ? "" : value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={"Input " + attr.label.toLowerCase()}
+        style={fieldStyle}
+      />
+    </Field>
+  );
+};
+
 const ProductForm = ({ productId, categories, onClose, onSaved }) => {
   const isEdit = Boolean(productId);
   const [brands, setBrands] = useState([]);
   const [showCustomBrand, setShowCustomBrand] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit);
+  // Category-specific field values: { [attr.key]: value }
+  const [attrValues, setAttrValues] = useState({});
   const [existingImages, setExistingImages] = useState([]);
   const [newImages, setNewImages] = useState([null, null, null, null]);
 
@@ -116,6 +199,9 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
           isActive: String(p.isActive ?? true),
         });
         setExistingImages((p.productImages || []).map((i) => i.url || i));
+        setAttrValues(
+          Object.fromEntries((p.attributes || []).map((a) => [a.key, a.value])),
+        );
         setNewImages([null, null, null, null]);
       })
       .catch(() => alert("Failed to load product"))
@@ -130,7 +216,14 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    // Category badli to uske fields alag honge, purani values matlab ki nahi
+    if (name === "categoryId") setAttrValues({});
   };
+
+  // Selected category ke admin-defined fields (backend /seller/categories se aate hain)
+  const selectedCategory = categories.find((c) => c._id === form.categoryId);
+  const categoryAttrs = selectedCategory?.attributes || [];
+  const setAttr = (key, value) => setAttrValues((prev) => ({ ...prev, [key]: value }));
 
   const handleImageChange = (idx, file) => {
     const imgs = [...newImages];
@@ -144,6 +237,13 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
       alert("Please fill in Product Name, Category and Price");
       return;
     }
+    const isEmpty = (v) =>
+      v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
+    const missing = categoryAttrs.find((a) => a.required && isEmpty(attrValues[a.key]));
+    if (missing) {
+      alert(`Please fill in ${missing.label}`);
+      return;
+    }
     const fd = new FormData();
     fd.append("productName", form.productName);
     fd.append("brand", form.brand);
@@ -153,6 +253,12 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
     if (form.discountPrice) fd.append("discountPrice", form.discountPrice);
     fd.append("stock", form.stock || 0);
     fd.append("isActive", form.isActive);
+    // Sirf current category ke fields bhejo (backend validate karta hai)
+    const attrPayload = {};
+    categoryAttrs.forEach((a) => {
+      if (!isEmpty(attrValues[a.key])) attrPayload[a.key] = attrValues[a.key];
+    });
+    fd.append("attributes", JSON.stringify(attrPayload));
     newImages.forEach((f) => {
       if (f) fd.append("productImages", f);
     });
@@ -337,6 +443,28 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
             style={{ ...fieldStyle, height: "auto", minHeight: 79, resize: "vertical" }}
           />
         </Field>
+
+        {/* Category-specific fields: admin ne category par define kiye */}
+        {categoryAttrs.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}>
+            <div style={{ borderTop: "1px solid #E7E7E7", paddingTop: 16 }}>
+              <div style={{ ...labelStyle, fontSize: 15, marginBottom: 2 }}>
+                {selectedCategory?.categoryName || selectedCategory?.name || "Category"} Details
+              </div>
+              <div style={{ fontSize: 12, color: "#888" }}>
+                Is category ke liye admin ke set kiye fields
+              </div>
+            </div>
+            {categoryAttrs.map((attr) => (
+              <DynamicField
+                key={attr.key}
+                attr={attr}
+                value={attrValues[attr.key]}
+                onChange={(v) => setAttr(attr.key, v)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Image upload + CTA */}

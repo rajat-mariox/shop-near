@@ -11,6 +11,7 @@ const Settings = require("../models/Settings");
 const UserAddress = require("../models/UserAddress");
 const User = require("../models/User");
 const ObjectId = require("mongoose").Types.ObjectId;
+const { isValidCoords, formatDistance } = require("../util/geo");
 
 module.exports = () => {
   /**
@@ -56,34 +57,79 @@ module.exports = () => {
    * Get Nearby Shops/Sellers
    * Filters verified sellers with ratings
    */
-  const toRad = (deg) => (deg * Math.PI) / 180;
-
-  const getDistanceKm = (lat1, lng1, lat2, lng2) => {
-    const R = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+  /**
+   * User ki location tay karo: pehle app se aaye live lat/lng (query params),
+   * warna user ka selected saved address (agar usme coords hain).
+   * Kuch na mile to null - tab nearby shops khali jaate hain.
+   */
+  const resolveUserCoords = async (userLat, userLng, userId) => {
+    if (isValidCoords(userLat, userLng)) {
+      return { lat: Number(userLat), lng: Number(userLng), source: "live" };
+    }
+    if (!userId) return null;
+    const address =
+      (await UserAddress.findOne({ userId, isActive: true, isSelected: true })) ||
+      (await UserAddress.findOne({ userId, isActive: true }).sort({
+        createdAt: -1,
+      }));
+    if (address && isValidCoords(address.lat, address.lng)) {
+      return { lat: address.lat, lng: address.lng, source: "address" };
+    }
+    return null;
   };
 
-  const getNearbyShops = async (userLat = null, userLng = null, limit = 10) => {
-    const query = {
-      status: "approved",
-      isActive: true,
-      isDeleted: false,
-      shopName: { $exists: true, $ne: "" },
-    };
+  /** Admin panel (Delivery Settings) se set kiya hua radius, km me */
+  const getDeliveryRadiusKm = async () => {
+    const settings = await DeliverySettings.findOne({ isActive: true }).select(
+      "maxDeliveryRadius"
+    );
+    const km = Number(settings?.maxDeliveryRadius);
+    return Number.isFinite(km) && km > 0 ? km : 10;
+  };
 
-    const shops = await Seller.find(query)
-      .select(
-        "shopName shopLogo shopImages shopDescription categories deliveryTime deliveryCharge lat lng address city offerText gstVerified"
-      )
-      .populate("categories", "categoryName")
-      .sort({ createdAt: -1 })
-      .limit(limit);
+  /**
+   * Nearby shops - user ke coords se admin-set radius ke andar, paas wali pehle.
+   * Seller.location (2dsphere) par $geoNear chalta hai; coords na ho to [].
+   */
+  const getNearbyShops = async (coords, radiusKm, limit = 10) => {
+    if (!coords) return [];
+
+    const shops = await Seller.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [coords.lng, coords.lat] },
+          distanceField: "distanceMeters",
+          maxDistance: radiusKm * 1000,
+          spherical: true,
+          query: {
+            status: "approved",
+            isActive: true,
+            isDeleted: false,
+            shopName: { $exists: true, $ne: "" },
+          },
+        },
+      },
+      { $limit: limit },
+      {
+        $project: {
+          shopName: 1,
+          shopLogo: 1,
+          shopImages: 1,
+          shopDescription: 1,
+          categories: 1,
+          deliveryTime: 1,
+          deliveryCharge: 1,
+          lat: 1,
+          lng: 1,
+          address: 1,
+          city: 1,
+          offerText: 1,
+          gstVerified: 1,
+          distanceMeters: 1,
+        },
+      },
+    ]);
+    await Seller.populate(shops, { path: "categories", select: "categoryName" });
 
     const shopIds = shops.map((s) => s._id);
 
@@ -135,15 +181,8 @@ module.exports = () => {
         city: shop.city,
         lat: shop.lat,
         lng: shop.lng,
-        distance:
-          userLat && userLng && shop.lat && shop.lng
-            ? `${getDistanceKm(
-                Number(userLat),
-                Number(userLng),
-                shop.lat,
-                shop.lng
-              ).toFixed(1)} km`
-            : null,
+        distanceKm: Number((shop.distanceMeters / 1000).toFixed(2)),
+        distance: formatDistance(shop.distanceMeters / 1000),
       };
     });
   };
@@ -270,10 +309,14 @@ module.exports = () => {
    */
   const getHeaderBg = async () => {
     const settings = await Settings.findOne({}).select(
-      "homeHeaderBg homeHeaderBgType"
+      "homeHeaderBg homeHeaderBgType homeHeaderLights"
     );
-    if (!settings || !settings.homeHeaderBg) return null;
-    return { url: settings.homeHeaderBg, type: settings.homeHeaderBgType };
+    // url khali ho to app apna default bg dikhati hai; showLights admin ka toggle
+    return {
+      url: (settings && settings.homeHeaderBg) || "",
+      type: (settings && settings.homeHeaderBgType) || "",
+      showLights: settings ? settings.homeHeaderLights !== false : true,
+    };
   };
 
   const getCompleteHomeScreenData = async (
@@ -282,6 +325,12 @@ module.exports = () => {
     userId = null
   ) => {
     try {
+      // Nearby shops ke liye pehle user coords + admin radius chahiye
+      const [coords, radiusKm] = await Promise.all([
+        resolveUserCoords(userLat, userLng, userId),
+        getDeliveryRadiusKm(),
+      ]);
+
       // Fetch all data in parallel
       const [
         banners,
@@ -296,7 +345,7 @@ module.exports = () => {
       ] = await Promise.all([
         getActiveBanners(),
         getShopCategories(),
-        getNearbyShops(userLat, userLng),
+        getNearbyShops(coords, radiusKm),
         getActiveBrands(),
         getActivePromoCodes(),
         getDeliveryInfo(),
@@ -312,6 +361,12 @@ module.exports = () => {
         banners,
         categories,
         nearbyShops: shops,
+        // App ko batane ke liye ki shops kyun khali hain (location nahi vs radius me koi shop nahi)
+        nearby: {
+          hasLocation: !!coords,
+          locationSource: coords ? coords.source : null,
+          radiusKm,
+        },
         brands,
         promoCodes,
       };
@@ -360,6 +415,8 @@ module.exports = () => {
     getActiveBanners,
     getShopCategories,
     getNearbyShops,
+    resolveUserCoords,
+    getDeliveryRadiusKm,
     getActiveBrands,
     getActivePromoCodes,
     getCompleteHomeScreenData,

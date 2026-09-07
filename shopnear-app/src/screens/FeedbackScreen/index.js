@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import {
   Image,
   Modal,
+  PermissionsAndroid,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,17 +14,30 @@ import {
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import Feather from 'react-native-vector-icons/Feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StandaloneTabBar } from '../../routes/MyBottomTabs';
+import Svg, { Path } from 'react-native-svg';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { Colors } from '../../themes/Colors';
 import { submitFeedback } from '../../service/feedbackService';
 import { submitProductRating } from '../../service/productService';
 import { showToast } from '../../utils/toast';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const THEME_COLOR = Colors.theme1;
 // OEM system fonts par text-cut se bachne ke liye
 const F = { fontFamily: 'sans-serif' };
 const MAX_CHARS = 200;
+
+// Figma 55:9982 wala sharp 5-point star (vector icon ka star rounded tha)
+const StarIcon = ({ size, color }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Path
+      d="M12 1.6l3.09 6.83 7.41.78-5.55 5.02 1.56 7.33L12 17.8l-6.51 3.76 1.56-7.33L1.5 9.21l7.41-.78L12 1.6z"
+      fill={color}
+    />
+  </Svg>
+);
 
 const FeedbackScreen = ({ navigation, route }) => {
   // orderId + productId ke saath khula ho to ye PRODUCT REVIEW mode hai —
@@ -33,7 +48,8 @@ const FeedbackScreen = ({ navigation, route }) => {
   const productName = route?.params?.productName;
   const isProductReview = !!(orderId && productId);
 
-  const [rating, setRating] = useState(4);
+  // Default koi star select nahi; user khud rating de (0 = not selected)
+  const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [galleryImage, setGalleryImage] = useState(null);
   const [cameraImage, setCameraImage] = useState(null);
@@ -42,25 +58,61 @@ const FeedbackScreen = ({ navigation, route }) => {
 
   const pickFromGallery = async () => {
     const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8 });
+    if (result.errorCode) {
+      showToast(result.errorMessage || 'Gallery open nahi ho paayi', 'error');
+      return;
+    }
     if (!result.didCancel && result.assets?.length) setGalleryImage(result.assets[0]);
   };
 
+  // Manifest me CAMERA permission declare hai, isliye Android par launchCamera se
+  // pehle runtime permission zaroori hai; bina iske picker chupchap fail hota hai.
+  const ensureCameraPermission = async () => {
+    if (Platform.OS !== 'android') return true;
+    const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
+      title: 'Camera permission',
+      message: 'Photo lene ke liye camera access chahiye.',
+      buttonPositive: 'Allow',
+      buttonNegative: 'Cancel',
+    });
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  };
+
   const pickFromCamera = async () => {
-    const result = await launchCamera({ mediaType: 'photo', quality: 0.8, saveToPhotos: false });
+    const ok = await ensureCameraPermission();
+    if (!ok) {
+      showToast('Camera permission nahi mili. Settings se allow karein.', 'error');
+      return;
+    }
+    const result = await launchCamera({
+      mediaType: 'photo',
+      quality: 0.8,
+      saveToPhotos: false,
+      cameraType: 'back',
+    });
+    if (result.errorCode) {
+      showToast(result.errorMessage || 'Camera open nahi ho paaya', 'error');
+      return;
+    }
     if (!result.didCancel && result.assets?.length) setCameraImage(result.assets[0]);
   };
 
   const handleSend = async () => {
+    if (!rating) {
+      showToast('Please select a star rating', 'error');
+      return;
+    }
     setSubmitting(true);
     let result;
+    const images = [galleryImage, cameraImage].filter(Boolean);
     if (isProductReview) {
       result = await submitProductRating(productId, {
         orderId,
         rating,
         reviewText: feedback,
+        images,
       });
     } else {
-      const images = [galleryImage, cameraImage].filter(Boolean);
       result = await submitFeedback(rating, feedback, images);
     }
     setSubmitting(false);
@@ -89,18 +141,19 @@ const FeedbackScreen = ({ navigation, route }) => {
 
   return (
     /* Navigator status bar area khud handle karta hai, isliye sirf bottom edge */
-    <SafeAreaView style={styles.screen} edges={['bottom']}>
+    /* Bottom inset tab bar khud sambhalta hai */
+    <SafeAreaView style={styles.screen} edges={[]}>
       {/* Header */}
-      <View style={styles.headerContainer}>
+      <ScreenHeader style={styles.headerContainer}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <AntDesign name="left" size={moderateScale(20)} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {isProductReview ? 'Write a Review' : 'Share your feedback'}
+          Share your feedback
         </Text>
-      </View>
+      </ScreenHeader>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -116,12 +169,9 @@ const FeedbackScreen = ({ navigation, route }) => {
         <View style={styles.starsRow}>
           {[1, 2, 3, 4, 5].map((i) => (
             <TouchableOpacity key={i} onPress={() => setRating(i)}>
-              <AntDesign
-                name="star"
-                size={moderateScale(38)}
-                color={i <= rating ? '#000' : '#B1B5C3'}
-                style={styles.star}
-              />
+              <View style={styles.star}>
+                <StarIcon size={moderateScale(38)} color={i <= rating ? '#000' : '#B1B5C3'} />
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -142,14 +192,12 @@ const FeedbackScreen = ({ navigation, route }) => {
           </Text>
         </View>
 
-        {/* Photo upload boxes (figma 55:9993 / 55:9999) — sirf app-feedback mode me;
-            product rating API images support nahi karti */}
-        {!isProductReview && (
-          <View style={styles.uploadRow}>
-            <UploadBox image={galleryImage} icon="image" onPress={pickFromGallery} />
-            <UploadBox image={cameraImage} icon="camera" onPress={pickFromCamera} />
-          </View>
-        )}
+        {/* Photo upload boxes (figma 55:9993 / 55:9999): gallery + camera, dono modes me.
+            Product review me photos Rating.reviewImages me save hoti hain */}
+        <View style={styles.uploadRow}>
+          <UploadBox image={galleryImage} icon="image" onPress={pickFromGallery} />
+          <UploadBox image={cameraImage} icon="camera" onPress={pickFromCamera} />
+        </View>
 
         {/* Send feedback (figma 55:9996) */}
         <TouchableOpacity
@@ -158,11 +206,7 @@ const FeedbackScreen = ({ navigation, route }) => {
           disabled={submitting}
           activeOpacity={0.85}>
           <Text style={styles.sendButtonText}>
-            {submitting
-              ? 'Sending...'
-              : isProductReview
-                ? 'Submit Review'
-                : 'Send feedback'}
+            {submitting ? 'Sending...' : 'Send Feedback'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -188,6 +232,8 @@ const FeedbackScreen = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
+      {/* Product review Order se, Rate this app Profile se khulta hai */}
+      <StandaloneTabBar activeName={isProductReview ? 'Order' : 'Profile'} />
     </SafeAreaView>
   );
 };

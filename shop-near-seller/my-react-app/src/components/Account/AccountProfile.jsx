@@ -204,7 +204,7 @@ const AccountProfile = () => {
         const res = await getSellerProfile();
         const s = res.data?.data || res.data?.rData || res.data;
         setProfile(s);
-        setAvatarPreview(s.ownerImage || s.shopLogo || "");
+        setAvatarPreview(s.shopLogo || s.ownerImage || "");
         setForm(fillForm(s));
       } catch (e) {
         console.error("Failed to load profile", e);
@@ -223,7 +223,7 @@ const AccountProfile = () => {
     if (profile) {
       setForm(fillForm(profile));
       setAvatarFile(null);
-      setAvatarPreview(profile.ownerImage || profile.shopLogo || "");
+      setAvatarPreview(profile.shopLogo || profile.ownerImage || "");
     }
   };
 
@@ -248,7 +248,7 @@ const AccountProfile = () => {
       fd.append("street", form.street);
       fd.append("city", form.city);
       fd.append("pincode", form.pincode);
-      if (avatarFile) fd.append("ownerImage", avatarFile);
+      if (avatarFile) fd.append("shopLogo", avatarFile);
       await updateSellerProfile(fd);
       alert("Profile updated successfully!");
       setEditContact(false);

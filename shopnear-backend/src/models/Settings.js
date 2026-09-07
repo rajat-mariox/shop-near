@@ -22,6 +22,8 @@ const SettingsSchema = new Schema(
       enum: ["image", "video", ""],
       default: "",
     },
+    // Header background ke upar festive string lights dikhani hain ya nahi (admin toggle)
+    homeHeaderLights: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

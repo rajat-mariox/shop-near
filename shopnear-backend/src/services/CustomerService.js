@@ -395,6 +395,7 @@ module.exports = () => {
         descriptionImages: product.descriptionImages || [],
         highlights: product.highlights || [],
         features: product.features,
+        attributes: product.attributes || [],
         rating: product.rating || 0,
         totalRatings: product.totalRatings || 0,
         seller: {
