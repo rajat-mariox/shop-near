@@ -12,7 +12,7 @@ import {
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { AppImages } from '../../constants/app.image';
 import { Colors } from '../../themes/Colors';
-import { fetchProductsByCategory } from '../../service/productService';
+import { fetchProductsByCategory, fetchProductsByBrand } from '../../service/productService';
 import { imageSource } from '../../utils/media';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
 import ScreenHeader from '../../components/ScreenHeader';
@@ -22,21 +22,24 @@ const THEME_COLOR = Colors.theme1;
 
 const SellerProductsScreen = ({ route, navigation }) => {
   const sellerId = route?.params?.sellerId;
-  const shopName = route?.params?.shopName || 'Shop';
+  // Brand mode: Home ke "Popular Brand" tile se aaye to us brand ke products
+  const brandId = route?.params?.brandId;
+  const shopName = route?.params?.shopName || route?.params?.brandName || 'Shop';
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const loadProducts = useCallback(() => {
-    if (!sellerId) {
+    if (!sellerId && !brandId) {
       setError('Shop ki id nahi mili');
       setLoading(false);
       return;
     }
     setLoading(true);
     setError(null);
-    fetchProductsByCategory(sellerId)
+    const request = brandId ? fetchProductsByBrand(brandId) : fetchProductsByCategory(sellerId);
+    request
       .then(res => {
         if (res.success && Array.isArray(res.data?.products)) {
           setProducts(res.data.products);
@@ -50,7 +53,7 @@ const SellerProductsScreen = ({ route, navigation }) => {
         setError('Network error');
       })
       .finally(() => setLoading(false));
-  }, [sellerId]);
+  }, [sellerId, brandId]);
 
   useEffect(() => {
     loadProducts();
@@ -108,7 +111,9 @@ const SellerProductsScreen = ({ route, navigation }) => {
     if (products.length === 0) {
       return (
         <View style={styles.centerBox}>
-          <Text style={styles.messageText}>Is shop me abhi koi product nahi hai</Text>
+          <Text style={styles.messageText}>
+            {brandId ? 'Is brand ka abhi koi product nahi hai' : 'Is shop me abhi koi product nahi hai'}
+          </Text>
         </View>
       );
     }

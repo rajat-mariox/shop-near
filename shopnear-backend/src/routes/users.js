@@ -161,6 +161,14 @@ userRouter.get(
 );
 
 // Search products
+// Popular Brand tile -> us brand ke products
+userRouter.get(
+  "/brands/:brandId/products",
+  AuthMiddleware().verifyUserToken,
+  ErrorHandlerMiddleware(CustomerController.getBrandProductsList),
+  ResponseMiddleware
+);
+
 userRouter.get(
   "/search",
   AuthMiddleware().verifyUserToken,

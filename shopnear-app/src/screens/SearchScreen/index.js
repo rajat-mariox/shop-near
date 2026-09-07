@@ -16,17 +16,9 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { AppImages } from '../../constants/app.image';
 import { fetchProductsByCategory, searchProducts } from '../../service/productService';
 import { fetchSellerCategories, fetchSellers } from '../../service/sellerService';
-import { addToWishlist, removeFromWishlist, fetchWishlist } from '../../service/wishService';
+import { refreshWishlist, toggleWishlist, useWishlistIds } from '../../utils/wishlistStore';
 import { showToast } from '../../utils/toast';
 import { getCurrentLocation } from '../../utils/location';
-// Wishlist API ke items se productId ka Set (item.productId object ya id dono ho sakta hai)
-const wishlistIdSet = (data) => {
-  const items = Array.isArray(data) ? data : data?.items || data?.wishlist || [];
-  return new Set(
-    items.map((i) => String(i.productId?._id || i.productId || i.product?._id || i._id)),
-  );
-};
-
 import ProductDetailPanel from './ProductDetailPanel';
 import { Colors } from '../../themes/Colors';
 import { fontScale, moderateScale } from '../../utils/responsive';
@@ -212,8 +204,8 @@ const SearchScreen = ({ navigation, route }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [searching, setSearching] = useState(false);
-  // Wishlist hearts (local state; add API call ke saath)
-  const [wishedIds, setWishedIds] = useState(new Set());
+  // Wishlist hearts: shared store, doosri screen par add/remove yahan turant dikhta hai
+  const wishedIds = useWishlistIds();
   // Backend se: { hasLocation, radiusKm } - empty state message ke liye
   const [nearbyInfo, setNearbyInfo] = useState(null);
   // Product par click hone par grid ki jagah detail panel khulta hai
@@ -259,34 +251,13 @@ const SearchScreen = ({ navigation, route }) => {
 
   // Mount par wishlist laao taaki pehle se wishlisted products ka heart bhara dikhe
   useEffect(() => {
-    fetchWishlist()
-      .then((res) => {
-        if (res.success) setWishedIds(wishlistIdSet(res.data));
-      })
-      .catch(() => {});
+    refreshWishlist().catch(() => {});
   }, []);
 
-  // Heart toggle (optimistic): wishlist me hai to hatao, nahi to add; API fail par revert
+  // Heart toggle (optimistic, store me): API fail par store khud revert karta hai
   const toggleWish = async (productId) => {
-    const wasWished = wishedIds.has(productId);
-    setWishedIds((prev) => {
-      const next = new Set(prev);
-      if (wasWished) next.delete(productId);
-      else next.add(productId);
-      return next;
-    });
-    const result = wasWished
-      ? await removeFromWishlist({ productId })
-      : await addToWishlist({ productId });
-    if (!result.success) {
-      setWishedIds((prev) => {
-        const next = new Set(prev);
-        if (wasWished) next.add(productId);
-        else next.delete(productId);
-        return next;
-      });
-      showToast(result.message || 'Wishlist update failed', 'error');
-    }
+    const result = await toggleWishlist(productId);
+    if (!result.success) showToast(result.message || 'Wishlist update failed', 'error');
   };
 
   // Sellers on mount: pehle live location, phir sirf nearby shops (admin radius)

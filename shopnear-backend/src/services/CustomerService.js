@@ -1,5 +1,7 @@
 const Seller = require("../models/Seller");
 const Product = require("../models/Product");
+const Brands = require("../models/Brands");
+const ObjectId = require("mongoose").Types.ObjectId;
 const Category = require("../models/Catagory");
 const Rating = require("../models/Rating");
 // Nearby filter ke liye (home screen jaisa): lazy require, circular import se bachne ke liye
@@ -30,9 +32,13 @@ module.exports = () => {
         shopName: { $exists: true, $ne: "" },
       };
 
-      // Filter by category if provided
+      // Filter by category if provided. Ye query neeche $geoNear aggregate me
+      // jaati hai, jahan Mongoose string ko ObjectId cast nahi karta - isliye
+      // yahin cast karo, warna category wali shops kabhi match nahi hoti.
       if (categoryId) {
-        query.categories = categoryId;
+        query.categories = ObjectId.isValid(categoryId)
+          ? new ObjectId(categoryId)
+          : categoryId;
       }
 
       // Search by shop name or business type
@@ -385,6 +391,96 @@ module.exports = () => {
    * Get product details
    * GET /v1/api/customer/products/:productId
    */
+  /**
+   * GET /user/brands/:brandId/products
+   * Home ke "Popular Brand" tile par tap: us brand ke saare products.
+   * Product me brand sirf text hai, isliye Brands.brand naam se case-insensitive
+   * exact match hota hai (Nike == nike). Response shape seller products jaisi hi.
+   */
+  const getBrandProducts = async (req, res, next) => {
+    console.log("CustomerService => getBrandProducts");
+
+    try {
+      const { brandId } = req.params;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 40;
+      const skip = (page - 1) * limit;
+
+      const brand = await Brands.findOne({
+        _id: brandId,
+        isActive: true,
+        isDeleted: false,
+      });
+      if (!brand) {
+        req.error = "Brand not found";
+        return next();
+      }
+
+      // Regex ke special chars escape karke match. Pehle product.brand par
+      // exact naam; seller ne brand set na kiya ho to product ke naam me brand
+      // ka poora word (jaise "Nike Quest 6 ...") bhi count hota hai.
+      const escaped = brand.brand.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const query = {
+        $or: [
+          { brand: { $regex: "^\\s*" + escaped + "\\s*$", $options: "i" } },
+          {
+            productName: {
+              $regex: "(^|[^A-Za-z0-9])" + escaped + "([^A-Za-z0-9]|$)",
+              $options: "i",
+            },
+          },
+        ],
+        isActive: true,
+        isDeleted: false,
+      };
+
+      const total = await Product.countDocuments(query);
+      const products = await Product.find(query)
+        .select(
+          "productName productImages price discountPrice discountPercent rating totalRatings colors sizes stock shopId"
+        )
+        .populate("shopId", "shopName")
+        .sort({ isFeatured: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      const formattedProducts = products.map((product) => ({
+        _id: product._id,
+        productName: product.productName,
+        productImage: product.productImages?.[0]?.url || "",
+        productImages: product.productImages?.map((img) => img.url) || [],
+        price: product.price,
+        discountPrice: product.discountPrice || product.price,
+        discountPercent: product.discountPercent || 0,
+        rating: product.rating || 0,
+        totalRatings: product.totalRatings || 0,
+        colors: product.colors || [],
+        sizes: product.sizes || [],
+        stock: product.stock,
+        inStock: product.stock > 0,
+        seller: product.shopId?.shopName,
+        sellerId: product.shopId?._id,
+      }));
+
+      req.rData = {
+        brand: { _id: brand._id, name: brand.brand, logo: brand.image },
+        products: formattedProducts,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(total / limit),
+          totalResults: total,
+          resultsPerPage: limit,
+        },
+      };
+      req.msg = "Products fetched successfully";
+      next();
+    } catch (error) {
+      console.error("Error in getBrandProducts:", error);
+      req.error = error.message;
+      next();
+    }
+  };
+
   const getProductDetails = async (req, res, next) => {
     console.log("CustomerService => getProductDetails");
 
@@ -541,6 +637,7 @@ module.exports = () => {
   };
 
   return {
+    getBrandProducts,
     getAllSellers,
     getSellerDetails,
     getSellerCategories,

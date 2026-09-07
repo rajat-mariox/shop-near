@@ -33,19 +33,20 @@ const SavedAddressScreen = ({ navigation, route }) => {
   const fromAddress = route?.params?.from === 'address';
 
   useEffect(() => {
-    fetchAddresses();
+    fetchAddresses({ autoOpen: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function fetchAddresses() {
+  // autoOpen sirf pehle load par: koi address nahi hai to form khud khul jaaye.
+  // Modal close ke baad wale refetch par autoOpen nahi, warna cross dabate hi
+  // form wapas khul jaata tha (naye user ke liye infinite reopen loop).
+  async function fetchAddresses({ autoOpen = false } = {}) {
     setLoading(true);
     const result = await listUserAddresses();
     setLoading(false);
     if (result.success) {
       setAddresses(result.addresses);
-      // Koi address hi nahi hai to seedha add-address form khol do —
-      // user ko pehle address bharna zaroori hai
-      if (result.addresses.length === 0) {
+      if (autoOpen && result.addresses.length === 0) {
         setShowAddAddress(true);
       }
     } else {
@@ -94,15 +95,14 @@ const SavedAddressScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       {/* Content wrapper: absolute Add button isi ke andar rahe, tab bar ke upar */}
       <View style={{ flex: 1 }}>
-      {/* Header — figma: coral, back, title, heart */}
+      {/* Header: coral, back, title */}
       <ScreenHeader style={styles.header}>
-        <TouchableOpacity onPress={() => navigation && navigation.goBack()}>
+        <TouchableOpacity
+          onPress={() => navigation && navigation.goBack()}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <AntDesign name="left" size={moderateScale(20)} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Saved Address</Text>
-        <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Wishlist')}>
-          <AntDesign name="hearto" size={moderateScale(20)} color="#fff" />
-        </TouchableOpacity>
       </ScreenHeader>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -218,9 +218,6 @@ const styles = StyleSheet.create({
     fontSize: fontScale(16),
     fontWeight: '500',
     marginLeft: px(10),
-  },
-  iconButton: {
-    marginLeft: px(14),
   },
   scrollContent: {
     paddingHorizontal: px(16),

@@ -7,6 +7,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../themes/Colors';
 import { clearStorage } from '../../utils/tokenStorage';
+import { clearWishlistStore } from '../../utils/wishlistStore';
 import { fetchUserProfile, deleteAccount } from '../../service/userProfile';
 import { applyCoupon } from '../../service/couponService';
 import { showToast } from '../../utils/toast';
@@ -35,6 +36,7 @@ const MyProfileScreen = ({ navigation }) => {
   // Logout handler
   const handleLogout = async () => {
     await clearStorage();
+    clearWishlistStore();
     if (navigation && navigation.replace) {
       navigation.replace('Login');
     }

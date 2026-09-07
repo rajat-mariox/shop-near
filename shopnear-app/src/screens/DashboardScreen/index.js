@@ -525,7 +525,15 @@ const Dashboard = (props) => {
           {homeData.brands.map((brand, idx) => {
             const color = brand.themeColor || '#B11116';
             return (
-              <View key={brand._id || idx}>
+              <TouchableOpacity
+                key={brand._id || idx}
+                activeOpacity={0.8}
+                onPress={() =>
+                  navigation.navigate('SellerProductsScreen', {
+                    brandId: brand._id,
+                    brandName: brand.name,
+                  })
+                }>
                 <View style={[styles.brandCard, { borderColor: color }]}>
                   <Image
                     source={imageSource(brand.logo, AppImages.gucci)}
@@ -544,7 +552,7 @@ const Dashboard = (props) => {
                     {brand.name}
                   </Text>
                 ) : null}
-              </View>
+              </TouchableOpacity>
             );
           })}
         </ScrollView>

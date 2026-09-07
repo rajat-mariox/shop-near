@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, PermissionsAndroid, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Pressable, StyleSheet, ScrollView, Modal, PermissionsAndroid, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -26,6 +26,8 @@ const AddAddressScreen = ({ visible, onClose, navigation }) => {
     const [address, setAddress] = useState('');
     const [houseNo, setHouseNo] = useState('');
     const [loading, setLoading] = useState(false);
+    // Field-wise validation errors: { fullName: 'msg', ... }
+    const [errors, setErrors] = useState({});
     // Live location — GPS coords + reverse-geocoded fields
     const [locating, setLocating] = useState(false);
     const [coords, setCoords] = useState(null);
@@ -92,15 +94,43 @@ const AddAddressScreen = ({ visible, onClose, navigation }) => {
         );
     };
 
+    // Typing shuru karte hi us field ka error hat jaata hai
+    const onChange = (key, setter) => (value) => {
+        setter(value);
+        if (errors[key]) setErrors(prev => ({ ...prev, [key]: undefined }));
+    };
+    const inputStyle = (key, extra) => [styles.input, extra, errors[key] && styles.inputError];
+    const fieldError = (key) => (errors[key] ? <Text style={styles.errorText}>{errors[key]}</Text> : null);
+
+    // Backend call se pehle saare required fields yahin check hote hain.
+    // Pehle ye check nahi tha: khali pincode 0 ban ke aur khali address ", , "
+    // ban ke backend se pass ho jaata tha, aur backend ka error toast Modal ke
+    // peeche chhup jaata tha.
+    const validate = () => {
+        const e = {};
+        if (!fullName.trim()) e.fullName = 'Please enter your full name';
+        if (!/^\d{10}$/.test(mobile.trim())) e.mobile = 'Please enter a valid 10-digit contact number';
+        if (!address.trim()) e.address = 'Please enter your society & other address';
+        if (!houseNo.trim()) e.houseNo = 'Please enter house / office no.';
+        if (!selectedSector.trim()) e.sector = 'Please enter area';
+        if (!selectedCity.trim()) e.city = 'Please enter city';
+        if (!selectedState.trim()) e.state = 'Please enter state';
+        if (!/^\d{6}$/.test(pinCode.trim())) e.pinCode = 'Please enter a valid 6-digit pincode';
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    };
+
     const handleSave = async () => {
+        if (!validate()) return;
         setLoading(true);
         const addressData = {
-            fullName,
-            city: selectedCity,
-            state: selectedState,
-            mobile,
-            pinCode: Number(pinCode) || 0,
-            address: `${address}, ${houseNo}, ${selectedSector}`,
+            fullName: fullName.trim(),
+            city: selectedCity.trim(),
+            state: selectedState.trim(),
+            mobile: mobile.trim(),
+            pinCode: Number(pinCode),
+            // Sirf bhare hue parts join hote hain, khali part se ", ," nahi banta
+            address: [address, houseNo, selectedSector].map(s => s.trim()).filter(Boolean).join(', '),
             addressType: selectedTag,
             // Live location use hui ho to coords bhi save hote hain
             lat: coords?.lat ?? null,
@@ -118,12 +148,17 @@ const AddAddressScreen = ({ visible, onClose, navigation }) => {
     };
 
     return (
-        <Modal visible={visible} animationType="slide" transparent>
-            <View style={styles.overlay}>
-                <View style={[styles.card, { paddingBottom: moderateScale(18) + insets.bottom }]}>
+        // onRequestClose: Android hardware/gesture back se modal band ho, warna
+        // back kuch nahi karta aur user screen par atka rehta hai.
+        // Overlay tap (card ke bahar, jaise header ka back arrow) bhi modal band karta hai.
+        <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+            <Pressable style={styles.overlay} onPress={onClose}>
+                <View
+                    style={[styles.card, { paddingBottom: moderateScale(18) + insets.bottom }]}
+                    onStartShouldSetResponder={() => true}>
                     <View style={styles.headerRow}>
                         <Text style={styles.title}>Enter Address Details</Text>
-                        <TouchableOpacity onPress={onClose}>
+                        <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                             <AntDesign name="close" size={moderateScale(22)} color="#888" />
                         </TouchableOpacity>
                     </View>
@@ -143,43 +178,59 @@ const AddAddressScreen = ({ visible, onClose, navigation }) => {
                                 {locating ? 'Getting your location...' : 'Use my current location'}
                             </Text>
                         </TouchableOpacity>
-                        <TextInput style={styles.input} placeholder="Full Name*" placeholderTextColor="#B0B0B0" value={fullName} onChangeText={setFullName} />
-                        <TextInput style={styles.input} placeholder="Contact Number*" placeholderTextColor="#B0B0B0" keyboardType="phone-pad" maxLength={10} value={mobile} onChangeText={setMobile} />
-                        <TextInput style={styles.input} placeholder="Write your society & other address*" placeholderTextColor="#B0B0B0" value={address} onChangeText={setAddress} />
-                        <TextInput style={styles.input} placeholder="House / Office No. / Floor*" placeholderTextColor="#B0B0B0" value={houseNo} onChangeText={setHouseNo} />
+                        <TextInput style={inputStyle('fullName')} placeholder="Full Name*" placeholderTextColor="#B0B0B0" value={fullName} onChangeText={onChange('fullName', setFullName)} />
+                        {fieldError('fullName')}
+                        <TextInput style={inputStyle('mobile')} placeholder="Contact Number*" placeholderTextColor="#B0B0B0" keyboardType="phone-pad" maxLength={10} value={mobile} onChangeText={onChange('mobile', setMobile)} />
+                        {fieldError('mobile')}
+                        <TextInput style={inputStyle('address')} placeholder="Write your society & other address*" placeholderTextColor="#B0B0B0" value={address} onChangeText={onChange('address', setAddress)} />
+                        {fieldError('address')}
+                        <TextInput style={inputStyle('houseNo')} placeholder="House / Office No. / Floor*" placeholderTextColor="#B0B0B0" value={houseNo} onChangeText={onChange('houseNo', setHouseNo)} />
+                        {fieldError('houseNo')}
                         <View style={[styles.row, { width: '100%', gap: moderateScale(5) }]}>
-                            <TextInput
-                                style={[styles.input, { width: '49%' }]}
-                                placeholder="Area*"
-                                placeholderTextColor="#B0B0B0"
-                                value={selectedSector}
-                                onChangeText={setSelectedSector}
-                            />
-                            <TextInput
-                                style={[styles.input, { width: '49%' }]}
-                                placeholder="City*"
-                                placeholderTextColor="#B0B0B0"
-                                value={selectedCity}
-                                onChangeText={setSelectedCity}
-                            />
+                            <View style={styles.half}>
+                                <TextInput
+                                    style={inputStyle('sector')}
+                                    placeholder="Area*"
+                                    placeholderTextColor="#B0B0B0"
+                                    value={selectedSector}
+                                    onChangeText={onChange('sector', setSelectedSector)}
+                                />
+                                {fieldError('sector')}
+                            </View>
+                            <View style={styles.half}>
+                                <TextInput
+                                    style={inputStyle('city')}
+                                    placeholder="City*"
+                                    placeholderTextColor="#B0B0B0"
+                                    value={selectedCity}
+                                    onChangeText={onChange('city', setSelectedCity)}
+                                />
+                                {fieldError('city')}
+                            </View>
                         </View>
                         <View style={[styles.row, { width: '100%', gap: moderateScale(5) }]}>
-                            <TextInput
-                                style={[styles.input, { width: '49%' }]}
-                                placeholder="State*"
-                                placeholderTextColor="#B0B0B0"
-                                value={selectedState}
-                                onChangeText={setSelectedState}
-                            />
-                            <TextInput
-                                style={[styles.input, { width: '49%' }]}
-                                placeholder="Pincode*"
-                                placeholderTextColor="#B0B0B0"
-                                keyboardType="number-pad"
-                                maxLength={6}
-                                value={pinCode}
-                                onChangeText={setPinCode}
-                            />
+                            <View style={styles.half}>
+                                <TextInput
+                                    style={inputStyle('state')}
+                                    placeholder="State*"
+                                    placeholderTextColor="#B0B0B0"
+                                    value={selectedState}
+                                    onChangeText={onChange('state', setSelectedState)}
+                                />
+                                {fieldError('state')}
+                            </View>
+                            <View style={styles.half}>
+                                <TextInput
+                                    style={inputStyle('pinCode')}
+                                    placeholder="Pincode*"
+                                    placeholderTextColor="#B0B0B0"
+                                    keyboardType="number-pad"
+                                    maxLength={6}
+                                    value={pinCode}
+                                    onChangeText={onChange('pinCode', setPinCode)}
+                                />
+                                {fieldError('pinCode')}
+                            </View>
                         </View>
                         <Text style={styles.tagLabel}>Tag this location for latter*</Text>
                         <View style={styles.tagRow}>
@@ -209,12 +260,15 @@ const AddAddressScreen = ({ visible, onClose, navigation }) => {
                             </Text>
                             <Text style={styles.infoSoon}>We will reach you soon!</Text>
                         </View>
+                        {Object.values(errors).some(Boolean) ? (
+                            <Text style={styles.errorSummary}>Please fill the highlighted fields above</Text>
+                        ) : null}
                         <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
                             <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save & Continue'}</Text>
                         </TouchableOpacity>
                     </ScrollView>
                 </View>
-            </View>
+            </Pressable>
         </Modal>
     );
 };
@@ -297,6 +351,28 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: verticalScale(12),
+    },
+    // Row ke dono inputs ka wrapper, taaki error text input ke neeche hi aaye
+    half: {
+        width: '49%',
+    },
+    inputError: {
+        borderColor: '#E53935',
+    },
+    errorText: {
+        fontFamily: 'sans-serif',
+        color: '#E53935',
+        fontSize: fontScale(11.5),
+        marginTop: -verticalScale(8),
+        marginBottom: verticalScale(10),
+        marginLeft: scale(6),
+    },
+    errorSummary: {
+        fontFamily: 'sans-serif',
+        color: '#E53935',
+        fontSize: fontScale(12.5),
+        textAlign: 'center',
+        marginBottom: verticalScale(8),
     },
     dropdown: {
         flex: 1,

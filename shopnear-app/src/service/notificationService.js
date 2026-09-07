@@ -8,6 +8,25 @@ import { navigateFromOutside } from '../routes/navigationRef';
 // RNFB v26 = modular API only (getMessaging + free functions).
 // Firebase native init tabhi hota hai jab android/app/google-services.json ho;
 // bina uske getMessaging() throw karta hai — guard rakha hai taaki app na toote.
+// Notifee: foreground me system-tray notification dikhane ke liye (Android FCM
+// foreground me tray notification khud nahi dikhata). Native module hai, isliye
+// same guard pattern - na mile to purana in-app toast fallback chalta hai.
+let notifeeMod = null;
+const getNotifee = () => {
+  if (notifeeMod) return notifeeMod;
+  try {
+    const mod = require('@notifee/react-native');
+    notifeeMod = { notifee: mod.default, EventType: mod.EventType, AndroidImportance: mod.AndroidImportance, AndroidStyle: mod.AndroidStyle };
+    return notifeeMod;
+  } catch (e) {
+    console.warn('[Notifee] unavailable:', e?.message);
+    return null;
+  }
+};
+
+// Backend (android.notification.channelId) aur MainApplication.kt isi id par hain
+export const ORDER_CHANNEL_ID = 'order_updates';
+
 let fcm = null;
 const getFcm = () => {
   if (fcm) return fcm;
@@ -99,6 +118,61 @@ const openFromNotification = (remoteMessage) => {
 };
 
 /**
+ * Foreground FCM message ko system notification (status bar + heads-up) ki
+ * tarah dikhao - bilkul waise hi jaise app background me hone par Android dikhata hai.
+ * Data payload saath jaata hai taaki tap par tracking screen khule.
+ */
+export const displaySystemNotification = async (remoteMessage) => {
+  const n = getNotifee();
+  if (!n) return false;
+  const { notifee, AndroidImportance, AndroidStyle } = n;
+  const title = remoteMessage?.notification?.title || 'Notification';
+  const body = remoteMessage?.notification?.body || '';
+  const data = remoteMessage?.data || {};
+  // Idempotent: channel pehle se (MainApplication.kt) hai to settings hi sync hoti hain
+  await notifee.createChannel({
+    id: ORDER_CHANNEL_ID,
+    name: 'Order Updates',
+    description: 'Order status, delivery OTP and delivery updates',
+    importance: AndroidImportance.HIGH,
+    sound: 'default',
+    vibration: true,
+    lights: true,
+    lightColor: '#FF6051',
+  });
+  await notifee.displayNotification({
+    title,
+    body,
+    // Notifee data values string hone chahiye
+    data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
+    android: {
+      channelId: ORDER_CHANNEL_ID,
+      smallIcon: 'ic_notification',
+      color: '#FF6051',
+      importance: AndroidImportance.HIGH,
+      // Tap par app khule (background/killed dono me) aur press event mile
+      pressAction: { id: 'default', launchActivity: 'default' },
+      // Lambi body (delivery OTP wali) poori dikhe
+      style: body.length > 40 ? { type: AndroidStyle.BIGTEXT, text: body } : undefined,
+      showTimestamp: true,
+    },
+  });
+  return true;
+};
+
+/**
+ * Notifee notification tap (foreground/background event) -> tracking screen.
+ * index.js ka onBackgroundEvent aur yahan ka onForegroundEvent dono isi ko call karte hain.
+ */
+export const handleNotifeeEvent = ({ type, detail }) => {
+  const n = getNotifee();
+  if (!n) return;
+  if (type === n.EventType.PRESS) {
+    openFromNotification({ data: detail?.notification?.data || {} });
+  }
+};
+
+/**
  * App.js se ek baar call hota hai — foreground message, notification tap
  * (background/quit) aur token refresh handle karta hai.
  * Return: cleanup function.
@@ -108,9 +182,15 @@ export const setupNotificationListeners = () => {
   if (!f) return () => {};
   const { mod, messaging } = f;
 
-  // Foreground: Android system tray me nahi dikhata, isliye in-app card (NotificationToast).
-  // Delivery OTP body me hi hota hai; tap karke tracking screen khulti hai.
+  // Foreground: Android FCM ko system tray me khud nahi dikhata, isliye Notifee se
+  // wahi notification tray me dikhate hain (background jaisa hi look/sound).
+  // Notifee na ho (native rebuild pending) to purana in-app card fallback.
   const unsubMessage = mod.onMessage(messaging, async (remoteMessage) => {
+    const shown = await displaySystemNotification(remoteMessage).catch((e) => {
+      console.warn('[Notifee] display failed:', e?.message);
+      return false;
+    });
+    if (shown) return;
     const title = remoteMessage?.notification?.title || 'Notification';
     const body = remoteMessage?.notification?.body || '';
     Toast.show({
@@ -141,9 +221,25 @@ export const setupNotificationListeners = () => {
     registerDeviceToken();
   });
 
+  // Notifee (foreground me dikhayi gayi) notification ka tap
+  const n = getNotifee();
+  const unsubNotifee = n ? n.notifee.onForegroundEvent(handleNotifeeEvent) : () => {};
+  // App band thi aur Notifee wali notification tap se khuli
+  if (n) {
+    n.notifee
+      .getInitialNotification()
+      .then((initial) => {
+        if (initial?.notification) {
+          pendingNotification = { data: initial.notification.data || {} };
+        }
+      })
+      .catch(() => {});
+  }
+
   return () => {
     unsubMessage();
     unsubOpened();
     unsubToken();
+    unsubNotifee();
   };
 };

@@ -44,15 +44,18 @@ export const fetchSellers = async (page = 1, limit = 10, coords = null) => {
  * @param {string} categoryId - Category's ID
  * @param {number} page - Page number (optional)
  * @param {number} limit - Results per page (optional)
+ * @param {{lat:number,lng:number}|null} coords - Live GPS; backend isi se nearby filter karta hai
  * @returns {Promise<{success: boolean, data?: any, message?: string}>}
  */
-export const fetchShopsByCategory = async (categoryId, page = 1, limit = 20) => {
+export const fetchShopsByCategory = async (categoryId, page = 1, limit = 20, coords = null) => {
   try {
     const token = await getTokenStorage();
     if (!token) {
       throw new Error('No auth token found');
     }
-    const url = `${API_BASE_URL}${API_ENDPOINTS.SELLER_LIST}?category=${categoryId}&page=${page}&limit=${limit}`;
+    const geo =
+      coords && coords.lat != null && coords.lng != null ? `&lat=${coords.lat}&lng=${coords.lng}` : '';
+    const url = `${API_BASE_URL}${API_ENDPOINTS.SELLER_LIST}?category=${categoryId}&page=${page}&limit=${limit}${geo}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
