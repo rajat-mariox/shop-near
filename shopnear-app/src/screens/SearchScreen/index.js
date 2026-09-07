@@ -18,7 +18,6 @@ import { fetchProductsByCategory, searchProducts } from '../../service/productSe
 import { fetchSellerCategories, fetchSellers } from '../../service/sellerService';
 import { addToWishlist, removeFromWishlist, fetchWishlist } from '../../service/wishService';
 import { showToast } from '../../utils/toast';
-import { getCurrentLocation } from '../../utils/location';
 // Wishlist API ke items se productId ka Set (item.productId object ya id dono ho sakta hai)
 const wishlistIdSet = (data) => {
   const items = Array.isArray(data) ? data : data?.items || data?.wishlist || [];
@@ -214,8 +213,6 @@ const SearchScreen = ({ navigation, route }) => {
   const [searching, setSearching] = useState(false);
   // Wishlist hearts (local state; add API call ke saath)
   const [wishedIds, setWishedIds] = useState(new Set());
-  // Backend se: { hasLocation, radiusKm } - empty state message ke liye
-  const [nearbyInfo, setNearbyInfo] = useState(null);
   // Product par click hone par grid ki jagah detail panel khulta hai
   // (figma node 26:2105 — sidebar/shops row wahi rehte hain)
   const [detailProductId, setDetailProductId] = useState(null);
@@ -289,16 +286,12 @@ const SearchScreen = ({ navigation, route }) => {
     }
   };
 
-  // Sellers on mount: pehle live location, phir sirf nearby shops (admin radius)
+  // Sellers on mount
   useEffect(() => {
     let isMounted = true;
     setLoadingSellers(true);
-    getCurrentLocation()
-      .catch(() => null)
-      .then((coords) => fetchSellers(1, 10, coords))
+    fetchSellers(1, 10)
       .then((result) => {
-        if (!isMounted) return;
-        setNearbyInfo(result.data?.nearby || null);
         if (!isMounted) return;
         if (result.success && Array.isArray(result.data?.sellers)) {
           setSellers(result.data.sellers);
@@ -414,13 +407,6 @@ const SearchScreen = ({ navigation, route }) => {
         <ActivityIndicator color={THEME_COLOR} style={styles.shopsState} />
       ) : sellerError ? (
         <Text style={styles.stateError}>{sellerError}</Text>
-      ) : sellers.length === 0 ? (
-        // Nearby filter: location nahi ya radius me koi shop nahi
-        <Text style={styles.stateError}>
-          {nearbyInfo && nearbyInfo.hasLocation === false
-            ? 'Location on karo, tabhi aas-paas ki shops dikhengi'
-            : `Aapke ${nearbyInfo?.radiusKm || 10} km ke aas-paas abhi koi shop nahi hai`}
-        </Text>
       ) : (
         sellers.map((seller) => (
           <ShopCard
