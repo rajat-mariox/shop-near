@@ -19,6 +19,9 @@ export const toggleSellerStatus = (id) =>
   client.put(`/admin/sellers/${id}/toggle-status`);
 export const deleteSeller = (id) => client.delete(`/admin/sellers/${id}`);
 export const createSeller = (data) => client.post("/admin/sellers", data);
+// Shop pin set/update (purane sellers ke liye jinke paas coords nahi)
+export const setSellerLocation = (id, data) =>
+  client.put(`/admin/sellers/${id}/location`, data);
 
 /* ============ USERS ============ */
 export const getUsers = (params) => client.get("/admin/users", { params });

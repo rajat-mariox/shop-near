@@ -339,6 +339,28 @@ module.exports = () => {
   /**
    * Approve Seller (Admin)
    */
+  /**
+   * Admin: seller ki shop location (lat/lng) set/update karo.
+   * Purane sellers jinke paas coords nahi (nearby me nahi dikhte) unke liye.
+   * Optional: address/city bhi saath update ho sakta hai.
+   */
+  const setSellerLocation = async (req, res, next) => {
+    console.log("SellerController => setSellerLocation");
+    const { id } = req.params;
+    const lat = parseFloat(req.body.lat);
+    const lng = parseFloat(req.body.lng);
+    // throw -> ErrorHandlerMiddleware message ke saath code 0 bhejta hai
+    if (!isValidCoords(lat, lng)) throw new Error("Valid latitude and longitude required");
+    const update = { lat, lng };
+    if (req.body.address) update.address = String(req.body.address);
+    if (req.body.city) update.city = String(req.body.city);
+    await SellerService().updateSeller(id, update);
+    const seller = await SellerService().fetch(id);
+    req.rData = { lat: seller.lat, lng: seller.lng, address: seller.address, city: seller.city };
+    req.msg = "location_updated";
+    next();
+  };
+
   const approveSeller = async (req, res, next) => {
     console.log("SellerController => approveSeller");
     let { sellerId } = req.body;
@@ -804,6 +826,7 @@ module.exports = () => {
     activateDeactivateSeller,
     deleteSeller,
     approveSeller,
+    setSellerLocation,
     rejectSeller,
     adminCreateSeller,
 

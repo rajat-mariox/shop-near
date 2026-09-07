@@ -309,6 +309,14 @@ adminRouter.get(
   ResponseMiddleware,
 );
 
+// Admin sets/updates a seller shop pin (nearby shops isi se nikalti hain)
+adminRouter.put(
+  "/sellers/:id/location",
+  AuthMiddleware().verifyAdminToken,
+  ErrorHandlerMiddleware(SellerController().setSellerLocation),
+  ResponseMiddleware,
+);
+
 adminRouter.put(
   "/sellers/:id/approve",
   AuthMiddleware().verifyAdminToken,
