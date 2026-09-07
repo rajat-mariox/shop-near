@@ -13,7 +13,8 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StandaloneTabBar } from '../../routes/MyBottomTabs';
 import { Colors } from '../../themes/Colors';
-import { fetchWishlist, removeFromWishlist } from '../../service/wishService';
+import { fetchWishlist } from '../../service/wishService';
+import { setWishlistFromItems, toggleWishlist, useWishlistIds } from '../../utils/wishlistStore';
 import { showToast } from '../../utils/toast';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
 import ScreenHeader from '../../components/ScreenHeader';
@@ -49,12 +50,17 @@ const WishlistScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadWishlist = () => {
-    setLoading(true);
+  // Store ke ids: ProductDetail/Search par heart hataya to card yahan se bhi turant hat jaata hai
+  const wishedIds = useWishlistIds();
+
+  // silent: screen par wapas aane par bina spinner ke list refresh (naye add hue items ke liye)
+  const loadWishlist = (silent = false) => {
+    if (!silent) setLoading(true);
     fetchWishlist()
       .then((res) => {
         if (res.success && Array.isArray(res.data)) {
           setWishlist(res.data);
+          setWishlistFromItems(res.data);
           setError(null);
         } else {
           setWishlist([]);
@@ -68,18 +74,22 @@ const WishlistScreen = ({ navigation }) => {
       .finally(() => setLoading(false));
   };
 
-  useEffect(loadWishlist, []);
+  useEffect(() => {
+    loadWishlist();
+    // Doosri screen (ProductDetail) se wapas aane par list fresh ho, taaki wahan
+    // add kiya product yahan bhi dikhe
+    const unsubscribe = navigation.addListener('focus', () => loadWishlist(true));
+    return () => unsubscribe && unsubscribe();
+  }, [navigation]);
 
-  // Heart tap — optimistic remove, fail par wapas
+  // Heart tap: store optimistic remove karta hai (card niche filter se hat jaata hai), fail par revert
   const handleRemove = async (item) => {
-    const prev = wishlist;
-    setWishlist((list) => list.filter((w) => w._id !== item._id));
-    const result = await removeFromWishlist({ productId: item.productId });
-    if (!result.success) {
-      setWishlist(prev);
-      showToast(result.message || 'Failed to remove', 'error');
-    }
+    const result = await toggleWishlist(item.productId);
+    if (!result.success) showToast(result.message || 'Failed to remove', 'error');
   };
+
+  // Sirf wahi cards jo store me abhi bhi wishlisted hain
+  const visibleWishlist = wishlist.filter((w) => wishedIds.has(String(w.productId)));
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -132,13 +142,13 @@ const WishlistScreen = ({ navigation }) => {
       ) : error ? (
         <View style={styles.stateBox}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={loadWishlist} style={styles.retryBtn}>
+          <TouchableOpacity onPress={() => loadWishlist()} style={styles.retryBtn}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
-          data={wishlist}
+          data={visibleWishlist}
           keyExtractor={(item) => item._id}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}

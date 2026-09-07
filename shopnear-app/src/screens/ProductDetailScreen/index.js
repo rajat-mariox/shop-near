@@ -6,18 +6,10 @@ import { Colors } from '../../themes/Colors';
 import { fetchProductDetail, fetchProductRatings } from '../../service/productService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { addToCart } from '../../service/cartService';
-import { addToWishlist, removeFromWishlist, fetchWishlist } from '../../service/wishService';
+import { refreshWishlist, toggleWishlist, useWishlistIds } from '../../utils/wishlistStore';
 import { showToast } from '../../utils/toast';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
 import ScreenHeader from '../../components/ScreenHeader';
-
-// Wishlist API ke items se productId ka Set (item.productId object ya id dono ho sakta hai)
-const wishlistIdSet = (data) => {
-  const items = Array.isArray(data) ? data : data?.items || data?.wishlist || [];
-  return new Set(
-    items.map((i) => String(i.productId?._id || i.productId || i.product?._id || i._id)),
-  );
-};
 
 // Category-specific field value ko dikhane layak text me badlo
 // (boolean -> Yes/No, multiselect -> comma list, number -> unit ke saath)
@@ -38,8 +30,6 @@ const ProductDetailScreen = ({ route, navigation }) => {
   // Color and size state
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
-  // Wishlist state
-  const [isWishlisted, setIsWishlisted] = useState(false);
   // Reviews (ratings collection se — order deliver hone ke baad diye gaye reviews)
   const [reviews, setReviews] = useState(null);
   // Review photo full-screen viewer (tap on thumbnail)
@@ -127,38 +117,27 @@ const ProductDetailScreen = ({ route, navigation }) => {
 
   const [wishlistLoading, setWishlistLoading] = useState(false);
 
-  // Screen khulte hi pata karo ye product wishlist me hai ya nahi (heart bhara dikhe)
+  // Wishlist state shared store se: Search/Wishlist screen par toggle yahan turant dikhta hai
+  const wishedIds = useWishlistIds();
+  const isWishlisted = wishedIds.has(String(product?._id || productId));
+
+  // Screen khulte hi store fresh karo (heart bhara dikhe agar pehle se wishlisted hai)
   useEffect(() => {
     if (!productId) return;
-    fetchWishlist()
-      .then((res) => {
-        if (res.success) setIsWishlisted(wishlistIdSet(res.data).has(String(productId)));
-      })
-      .catch(() => {});
+    refreshWishlist().catch(() => {});
   }, [productId]);
 
-  // Heart toggle: wishlist me hai to hatao, nahi to add karo
+  // Heart toggle (optimistic): store pehle UI badalta hai, API fail par revert
   const handleToggleWishlist = async () => {
     if (!product) return;
     if (wishlistLoading) return;
     setWishlistLoading(true);
     try {
-      if (isWishlisted) {
-        const res = await removeFromWishlist({ productId: product._id });
-        if (res.success) {
-          setIsWishlisted(false);
-          showToast('Removed from wishlist');
-        } else {
-          showToast(res.message || 'Failed to remove from wishlist', 'error');
-        }
+      const res = await toggleWishlist(product._id);
+      if (res.success) {
+        showToast(res.wished ? 'Added to wishlist' : 'Removed from wishlist');
       } else {
-        const res = await addToWishlist({ productId: product._id });
-        if (res.success) {
-          setIsWishlisted(true);
-          showToast('Added to wishlist');
-        } else {
-          showToast(res.message || 'Failed to add to wishlist', 'error');
-        }
+        showToast(res.message || 'Wishlist update failed', 'error');
       }
     } catch (e) {
       showToast('Wishlist update failed', 'error');
