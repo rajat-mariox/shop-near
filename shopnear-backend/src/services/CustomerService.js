@@ -2,6 +2,8 @@ const Seller = require("../models/Seller");
 const Product = require("../models/Product");
 const Category = require("../models/Catagory");
 const Rating = require("../models/Rating");
+// Nearby filter ke liye (home screen jaisa): lazy require, circular import se bachne ke liye
+const homeSvc = () => require("./HomeScreenService")();
 
 module.exports = () => {
   /**
@@ -40,6 +42,41 @@ module.exports = () => {
           { businessType: { $regex: search, $options: "i" } },
         ];
       }
+
+      // Sirf nearby shops (admin radius ke andar). Coords: app ka live GPS
+      // (?lat&lng), warna user ka selected saved address. Koi coords na ho to
+      // khali list + hasLocation=false (home screen jaisa behaviour).
+      const coords = await homeSvc().resolveUserCoords(
+        req.query.lat,
+        req.query.lng,
+        req.body.userId
+      );
+      const radiusKm = await homeSvc().getDeliveryRadiusKm();
+      let distanceById = new Map();
+      if (!coords) {
+        req.rData = {
+          sellers: [],
+          nearby: { hasLocation: false, radiusKm },
+          pagination: { currentPage: page, totalPages: 0, totalResults: 0, resultsPerPage: limit },
+        };
+        req.msg = "Sellers fetched successfully";
+        return next();
+      }
+      const near = await Seller.aggregate([
+        {
+          $geoNear: {
+            near: { type: "Point", coordinates: [coords.lng, coords.lat] },
+            distanceField: "distanceMeters",
+            maxDistance: radiusKm * 1000,
+            spherical: true,
+            query: { ...query, status: "approved" },
+          },
+        },
+        { $project: { _id: 1, distanceMeters: 1 } },
+        { $limit: 500 },
+      ]);
+      distanceById = new Map(near.map((n) => [String(n._id), n.distanceMeters]));
+      query = { _id: { $in: near.map((n) => n._id) } };
 
       // Count total documents
       const total = await Seller.countDocuments(query);
@@ -106,6 +143,7 @@ module.exports = () => {
         // Shop card ki green offer strip aur verified badge ke liye
         offerText: seller.offerText || "",
         isVerified: seller.gstVerified === true,
+        distanceMeters: distanceById.get(String(seller._id)) ?? null,
         };
       });
 
@@ -113,6 +151,7 @@ module.exports = () => {
 
       req.rData = {
         sellers: formattedSellers,
+        nearby: { hasLocation: true, radiusKm, source: coords.source },
         pagination: {
           currentPage: page,
           totalPages,
