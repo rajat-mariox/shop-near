@@ -15,6 +15,7 @@ import { Colors } from '../../themes/Colors';
 import { fetchProductsByCategory } from '../../service/productService';
 import { imageSource } from '../../utils/media';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const { width } = Dimensions.get('window');
 const THEME_COLOR = Colors.theme1;
@@ -126,12 +127,7 @@ const SellerProductsScreen = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.headerWrapper}>
-        <Image
-          source={AppImages.background1}
-          style={styles.headerBackground}
-          resizeMode="cover"
-        />
+      <ScreenHeader style={styles.headerWrapper}>
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => navigation && navigation.goBack()}>
             <AntDesign name="arrowleft" size={moderateScale(24)} color="#fff" />
@@ -139,8 +135,7 @@ const SellerProductsScreen = ({ route, navigation }) => {
           <Text style={styles.headerTitle} numberOfLines={1}>{shopName}</Text>
           <View style={{ width: scale(40) }} />
         </View>
-        <View style={styles.headerWave} />
-      </View>
+      </ScreenHeader>
       {renderBody()}
     </View>
   );
@@ -156,10 +151,7 @@ const styles = StyleSheet.create({
   headerWrapper: {
     position: 'relative',
     backgroundColor: THEME_COLOR,
-    borderBottomLeftRadius: moderateScale(24),
-    borderBottomRightRadius: moderateScale(24),
-    overflow: 'hidden',
-  },
+      },
   headerBackground: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
@@ -170,8 +162,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: scale(16),
-    paddingTop: verticalScale(25),
-    paddingBottom: verticalScale(40),
+    paddingTop: verticalScale(14),
+    paddingBottom: verticalScale(14),
     zIndex: 2,
   },
   headerWave: {

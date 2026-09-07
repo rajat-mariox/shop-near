@@ -9,7 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign';
-import styles, { SCALLOP_COUNT } from './styles';
+import styles from './styles';
 import { AppImages } from '../../constants/app.image';
 import { Colors } from '../../themes/Colors';
 import {
@@ -19,7 +19,9 @@ import {
   cancelOrder,
 } from '../../service/orderService';
 import { showToast } from '../../utils/toast';
+import { StandaloneTabBar } from '../../routes/MyBottomTabs';
 import RazorpayCheckout from 'react-native-razorpay';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const px = (n) => (SCREEN_W / 402) * n;
@@ -63,12 +65,22 @@ export default function PaymentMethodScreen({ navigation, route }) {
   const total = route?.params?.total || 0;
   const address = route?.params?.address || null;
 
-  const handleRazorpayPayment = async (order) => {
+  // Razorpay checkout ko chune hue option par khol do (card form / wallet)
+  const razorpayPrefillFor = (method) => {
+    if (method === 'card') return { method: 'card' };
+    if (['paytm', 'phonepe', 'amazonpay', 'freecharge'].includes(method)) {
+      return { method: 'wallet', wallet: method };
+    }
+    return {};
+  };
+
+  const handleRazorpayPayment = async (order, method = selected) => {
     // Payment fail/cancel hone par pending order cancel — warna bina payment
     // ke order "placed" dikhta rehta hai (cart backend par intact rehta hai)
+    // message null ho to chupchap (user ne khud cancel kiya, popup ki zaroorat nahi)
     const abandonOrder = async (message) => {
       await cancelOrder(order._id);
-      showToast(message, 'error');
+      if (message) showToast(message, 'error');
     };
     try {
       const paymentResult = await initiatePayment(order._id);
@@ -87,6 +99,7 @@ export default function PaymentMethodScreen({ navigation, route }) {
         name: 'ShopNear',
         prefill: {
           contact: address?.phone || '',
+          ...razorpayPrefillFor(method),
         },
         theme: { color: Colors.theme1 },
         // Cancel/fail hone par Razorpay khud checkout dobara khol deta hai
@@ -109,23 +122,28 @@ export default function PaymentMethodScreen({ navigation, route }) {
         await abandonOrder(verifyResult.message || 'Payment verification failed');
       }
     } catch (error) {
-      // Razorpay dismiss/failure
-      await abandonOrder(error?.description || error?.message || 'Payment cancelled');
+      // Razorpay dismiss (user cancel) par koi popup nahi; asli failure par chhota saaf message.
+      // Razorpay ka raw description JSON jaisa aata hai, use kabhi mat dikhao.
+      const text = String(error?.description || error?.message || '').toLowerCase();
+      const userCancelled = error?.code === 2 || error?.code === 0 || text.includes('cancel');
+      await abandonOrder(userCancelled ? null : 'Payment failed. Please try again.');
     }
   };
 
-  const handleContinue = async () => {
+  // method param: "+ Add Card" seedha card flow shuru karta hai (state update ka wait nahi)
+  const handleContinue = async (method = selected) => {
+    if (loading) return;
     if (!address || !address._id) {
       showToast('Please select a delivery address.', 'error');
       return;
     }
-    const paymentMethod = selected === 'cod' ? 'cod' : 'online';
+    const paymentMethod = method === 'cod' ? 'cod' : 'online';
     setLoading(true);
     try {
       const result = await createOrder({ addressId: address._id, paymentMethod });
       if (result.success) {
         if (paymentMethod === 'online') {
-          await handleRazorpayPayment(result.data);
+          await handleRazorpayPayment(result.data, method);
         } else {
           navigation.navigate('OrderConfirmedScreen', { orderId: result.data._id });
         }
@@ -141,20 +159,15 @@ export default function PaymentMethodScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      {/* Coral header — neeche scallop (lehar) wali edge */}
-      <View style={styles.header}>
+      {/* Coral header: pattern + scallop edge ScreenHeader se */}
+      <ScreenHeader style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation && navigation.goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <AntDesign name="left" size={px(20)} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Select Payment Method</Text>
-      </View>
-      <View style={styles.scallopRow} pointerEvents="none">
-        {Array.from({ length: SCALLOP_COUNT }).map((_, i) => (
-          <View key={i} style={styles.scallop} />
-        ))}
-      </View>
+      </ScreenHeader>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -201,7 +214,12 @@ export default function PaymentMethodScreen({ navigation, route }) {
           <Text style={[styles.sectionTitle, styles.sectionTitleInline]}>
             Credit / Debit Cards
           </Text>
-          <TouchableOpacity onPress={() => setSelected('card')}>
+          {/* Add Card: card select + turant Razorpay ka secure card form */}
+          <TouchableOpacity
+            onPress={() => {
+              setSelected('card');
+              handleContinue('card');
+            }}>
             <Text style={styles.addCard}>+ Add Card</Text>
           </TouchableOpacity>
         </View>
@@ -222,7 +240,7 @@ export default function PaymentMethodScreen({ navigation, route }) {
       {/* Continue */}
       <TouchableOpacity
         style={styles.continueBtn}
-        onPress={handleContinue}
+        onPress={() => handleContinue()}
         disabled={loading}
         activeOpacity={0.85}>
         {loading ? (
@@ -231,6 +249,8 @@ export default function PaymentMethodScreen({ navigation, route }) {
           <Text style={styles.continueBtnText}>Continue</Text>
         )}
       </TouchableOpacity>
+      {/* Checkout flow (Cart se aaye) me Cart, Profile se aaye to Profile tab active */}
+      <StandaloneTabBar activeName={route?.params?.cartItems ? 'Cart' : 'Profile'} />
     </View>
   );
 }

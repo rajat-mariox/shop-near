@@ -660,6 +660,29 @@
   flex-shrink: 0;
 }
 
+.ob-map-frame {
+  border: 0;
+  display: block;
+}
+
+.ob-coords-note {
+  font-size: 12px;
+  color: #4b5563;
+  align-self: center;
+  margin-left: 10px;
+}
+
+.ob-coords-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #b45309;
+}
+
+.ob-continue-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .ob-findmap-row {
   display: flex;
   justify-content: flex-end;

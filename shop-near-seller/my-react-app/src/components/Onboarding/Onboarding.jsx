@@ -263,6 +263,11 @@ export default function Onboarding({ verification = false }) {
   const handleStep2Continue = async () => {
     if (!gstNumber.trim()) return setError("Please enter GST number");
     if (!address.trim()) return setError("Please enter shop location");
+    // Exact location zaroori hai - isi se user app me "Shops Near You" me dikhoge
+    if (!coords)
+      return setError(
+        "Please pin your shop location: pick a suggestion or tap FIND ON MAP"
+      );
     setError("");
     setSaving(true);
     try {
@@ -273,10 +278,8 @@ export default function Onboarding({ verification = false }) {
 
       const profileData = new FormData();
       profileData.append("address", address.trim());
-      if (coords) {
-        profileData.append("lat", coords.lat);
-        profileData.append("lng", coords.lng);
-      }
+      profileData.append("lat", coords.lat);
+      profileData.append("lng", coords.lng);
       if (shopImage) profileData.append("shopImages", shopImage);
       profileData.append("status", "pending_approval");
       await updateSellerProfile(profileData);
@@ -487,15 +490,35 @@ export default function Onboarding({ verification = false }) {
                 className="ob-findmap-btn"
                 onClick={handleFindOnMap}
               >
-                {coords ? "LOCATION SAVED ✓" : "FIND ON MAP"}
+                {coords ? "USE MY CURRENT LOCATION" : "FIND ON MAP"}
               </button>
+              {coords && (
+                <span className="ob-coords-note">
+                  Pinned: {Number(coords.lat).toFixed(5)}, {Number(coords.lng).toFixed(5)}
+                </span>
+              )}
             </div>
 
-            <img className="ob-map-img" src={mapPreview} alt="Map" />
+            {/* Pin set hone par live map (OpenStreetMap embed) - seller dekh le ki pin sahi jagah hai */}
+            {coords ? (
+              <iframe
+                className="ob-map-img ob-map-frame"
+                title="Shop location"
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng - 0.004},${coords.lat - 0.0025},${coords.lng + 0.004},${coords.lat + 0.0025}&layer=mapnik&marker=${coords.lat},${coords.lng}`}
+              />
+            ) : (
+              <img className="ob-map-img" src={mapPreview} alt="Map" />
+            )}
+            {!coords && (
+              <p className="ob-coords-hint">
+                Shop location is required. Pick a suggestion above or tap FIND ON MAP
+                while standing at your shop.
+              </p>
+            )}
 
             <button
               className="ob-continue-btn"
-              disabled={saving}
+              disabled={saving || !coords}
               onClick={handleStep2Continue}
             >
               {saving ? "Submitting..." : "Continue"}

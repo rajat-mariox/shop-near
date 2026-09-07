@@ -1,6 +1,7 @@
 const Seller = require("../models/Seller");
 const redis = require("../util/redis");
 const helpers = require("../util/helpers");
+const { isValidCoords, toPoint } = require("../util/geo");
 
 module.exports = () => {
   // ---------------- ADD SELLER ----------------
@@ -113,6 +114,11 @@ module.exports = () => {
   };
 
   const updateSeller = (id, data) => {
+    // findByIdAndUpdate me pre-save hook nahi chalta, isliye GeoJSON location
+    // yahin sync hota hai (nearby shops ka $geoNear isi par chalta hai)
+    if (data && isValidCoords(data.lat, data.lng)) {
+      data.location = toPoint(data.lat, data.lng);
+    }
     return new Promise(function (resolve, reject) {
       Seller.findByIdAndUpdate(id, data, { new: true })
         .then(resolve)

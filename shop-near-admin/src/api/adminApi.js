@@ -138,3 +138,10 @@ export { CMS_TYPES };
 export const getDeliverySettings = () => client.get("/admin/delivery-settings");
 export const updateDeliverySettings = (data) =>
   client.put("/admin/delivery-settings", data);
+
+/* ============ NOTIFICATIONS (sidebar bell) ============ */
+export const getAdminNotifications = (params) =>
+  client.get("/admin/notifications", { params });
+export const getAdminUnreadCount = () => client.get("/admin/notifications/unread-count");
+export const markAdminNotificationRead = (id) => client.put(`/admin/notifications/${id}/read`);
+export const markAllAdminNotificationsRead = () => client.put("/admin/notifications/read-all");

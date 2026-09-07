@@ -762,27 +762,27 @@ const Product = () => {
                         <ChipStatus inStock={(p.stock ?? 0) > 0} />
                       </td>
                       <td style={tdStyle}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                           <img
                             src={icEye}
                             alt="View"
                             title="View"
                             onClick={() => openEditor(p._id)}
-                            style={{ width: 22, height: 22, cursor: "pointer" }}
+                            style={{ width: 16, height: 16, cursor: "pointer" }}
                           />
                           <img
                             src={icEdit}
                             alt="Edit"
                             title="Edit"
                             onClick={() => openEditor(p._id)}
-                            style={{ width: 22, height: 22, cursor: "pointer" }}
+                            style={{ width: 16, height: 16, cursor: "pointer" }}
                           />
                           <img
                             src={icDelete}
                             alt="Delete"
                             title="Delete"
                             onClick={() => handleDelete(p._id)}
-                            style={{ width: 20, height: 22, cursor: "pointer" }}
+                            style={{ width: 15, height: 16, cursor: "pointer" }}
                           />
                         </div>
                       </td>

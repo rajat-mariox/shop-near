@@ -713,6 +713,20 @@ module.exports = () => {
   /**
    * Get Seller Customers (aggregated from this seller's orders)
    */
+  const getSellerCustomerCities = async (req, res, next) => {
+    try {
+      console.log("OrderController => getSellerCustomerCities");
+      const { sellerId } = req.body;
+      req.rData = await OrderService().getSellerCustomerCities(new ObjectId(sellerId));
+      req.msg = "success";
+      next();
+    } catch (e) {
+      req.rCode = 0;
+      req.msg = e.message;
+      next();
+    }
+  };
+
   const getSellerCustomers = async (req, res, next) => {
     try {
       console.log("OrderController => getSellerCustomers");
@@ -1017,6 +1031,7 @@ module.exports = () => {
     verifyDeliveryOtp,
     getSellerOrderStats,
     getSellerCustomers,
+    getSellerCustomerCities,
     updateTracking,
     assignDeliveryAgent,
   };

@@ -8,7 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { getSellerOrders } from "../../api/sellerApi";
+import { getSellerOrderStats } from "../../api/sellerApi";
 import { ShowAllCta } from "../common/FigmaIcon";
 
 const MONTH_NAMES = [
@@ -40,30 +40,21 @@ const YourSalesThisYearChart = () => {
   const [totals, setTotals] = useState({ revenue: 0, orders: 0 });
   const navigate = useNavigate();
 
+  // Backend (/order/seller/stats) month-wise seller revenue deta hai - wahi source
+  // jo Total Revenue card use karta hai, isliye dono numbers match karte hain
   useEffect(() => {
-    getSellerOrders({ limit: 500 })
+    getSellerOrderStats()
       .then((res) => {
-        const d = res.data?.data || res.data;
-        const orders = d.orders || d || [];
-        const byMonth = {};
-        MONTH_NAMES.forEach((m) => {
-          byMonth[m] = { name: m, revenue: 0, orders: 0 };
-        });
-        let totalRev = 0;
-        let totalOrd = 0;
-        orders.forEach((o) => {
-          const dt = new Date(o.createdAt);
-          if (dt.getFullYear() === new Date().getFullYear()) {
-            const m = MONTH_NAMES[dt.getMonth()];
-            const amt = o.grandTotal || o.totalAmount || 0;
-            byMonth[m].revenue += amt;
-            byMonth[m].orders += 1;
-            totalRev += amt;
-            totalOrd += 1;
-          }
-        });
-        setChartData(MONTH_NAMES.map((m) => byMonth[m]));
-        setTotals({ revenue: totalRev, orders: totalOrd });
+        const d = res.data?.data || res.data || {};
+        const monthly = d.monthlyRevenue || [];
+        setChartData(
+          MONTH_NAMES.map((name, i) => ({
+            name,
+            revenue: monthly[i]?.revenue || 0,
+            orders: monthly[i]?.orders || 0,
+          })),
+        );
+        setTotals({ revenue: d.yearRevenue || 0, orders: d.yearOrders || 0 });
       })
       .catch(() => {
         setChartData(

@@ -11,6 +11,7 @@ import {
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
 import Dashboard from '../screens/DashboardScreen';
 import { NavIcon } from '../components/NavIcon';
 import Alert from '../components/Modal/Alert';
@@ -147,7 +148,8 @@ const CustomTabBar = ({ state, descriptors, navigation, bottomInset = 0 }) => {
   );
 
   const labelOf = (route) => {
-    const { options } = descriptors[route.key];
+    // Standalone use (stack screens) me descriptors nahi hote
+    const options = descriptors[route.key]?.options || {};
     return options.tabBarLabel ?? options.title ?? route.name;
   };
 
@@ -255,6 +257,35 @@ const MyBottomTabs = () => {
       </Tab.Navigator>
       <Alert modalAlert={modalAlert} setModalAlert={setModalAlert} />
     </>
+  );
+};
+
+/**
+ * Wahi coral tab bar, stack screens (Wishlist etc.) ke bottom par dikhane ke liye.
+ * Tab tap par tabs navigator ke andar wali tab khulti hai.
+ */
+const TAB_NAMES = ['Home', 'Search', 'Order', 'Cart', 'Profile'];
+export const StandaloneTabBar = ({ activeName = 'Profile' }) => {
+  const rootNav = useNavigation();
+  const insets = useSafeAreaInsets();
+  const index = Math.max(0, TAB_NAMES.indexOf(activeName));
+  const state = {
+    index,
+    routes: TAB_NAMES.map((name) => ({ key: name, name })),
+  };
+  const navigation = {
+    navigate: (name) =>
+      TAB_NAMES.includes(name)
+        ? rootNav.navigate('Home', { screen: name })
+        : rootNav.navigate(name),
+  };
+  return (
+    <CustomTabBar
+      state={state}
+      descriptors={{}}
+      navigation={navigation}
+      bottomInset={insets.bottom}
+    />
   );
 };
 

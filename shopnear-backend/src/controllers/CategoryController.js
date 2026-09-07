@@ -1,6 +1,7 @@
 "use strict";
 
 const CategoryService = require("../services/CategoryService");
+const { normalizeCategoryAttributes } = require("../util/productAttributes");
 const fileUploadService = require("../util/s3");
 const RegexEscape = require("regex-escape");
 
@@ -15,6 +16,10 @@ module.exports = () => {
     if (req.files && req.files.image) {
       const uploadRes = await fileUploadService.uploadFileToAws(req.files.image);
       data.image = uploadRes.images;
+    }
+
+    if (data.attributes !== undefined) {
+      data.attributes = normalizeCategoryAttributes(data.attributes);
     }
 
     const category = await CategoryService().addCategory(data);
@@ -34,6 +39,10 @@ module.exports = () => {
     if (req.files && req.files.image) {
       const uploadRes = await fileUploadService.uploadFileToAws(req.files.image);
       data.image = uploadRes.images;
+    }
+
+    if (data.attributes !== undefined) {
+      data.attributes = normalizeCategoryAttributes(data.attributes);
     }
 
     await CategoryService().updateCategory(id, data);

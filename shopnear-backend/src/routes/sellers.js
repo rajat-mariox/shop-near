@@ -6,6 +6,7 @@ const ErrorHandlerMiddleware = require("../middlewares/ErrorHandlerMiddleware");
 const ResponseMiddleware = require("../middlewares/ResponseMiddleware");
 const AuthMiddleware = require("../middlewares/AuthMiddleware");
 const CategoryController = require("../controllers/CategoryController");
+const PanelNotificationController = require("../controllers/PanelNotificationController");
 const AdminController = require("../controllers/AdminController");
 const AdminValidator = require("../validators/AdminValidator");
 const { authRateLimiter } = require("../middlewares/RateLimitMiddleware");
@@ -234,6 +235,32 @@ router.delete(
   "/admin/:id",
   AuthMiddleware().verifyAdminToken,
   ErrorHandlerMiddleware(SellerController().deleteSeller),
+  ResponseMiddleware,
+);
+
+/* ---------------- Panel notifications (bell icon) ---------------- */
+router.get(
+  "/notifications",
+  AuthMiddleware().verifySellerToken,
+  ErrorHandlerMiddleware(PanelNotificationController().list),
+  ResponseMiddleware,
+);
+router.get(
+  "/notifications/unread-count",
+  AuthMiddleware().verifySellerToken,
+  ErrorHandlerMiddleware(PanelNotificationController().unreadCount),
+  ResponseMiddleware,
+);
+router.put(
+  "/notifications/read-all",
+  AuthMiddleware().verifySellerToken,
+  ErrorHandlerMiddleware(PanelNotificationController().markAllRead),
+  ResponseMiddleware,
+);
+router.put(
+  "/notifications/:id/read",
+  AuthMiddleware().verifySellerToken,
+  ErrorHandlerMiddleware(PanelNotificationController().markRead),
   ResponseMiddleware,
 );
 

@@ -487,7 +487,7 @@ const Customer = () => {
                         alt="View"
                         title="View Customer"
                         onClick={() => setViewCustomer(c)}
-                        style={{ width: 22, height: 22, cursor: "pointer" }}
+                        style={{ width: 16, height: 16, cursor: "pointer" }}
                       />
                     </td>
                   </tr>

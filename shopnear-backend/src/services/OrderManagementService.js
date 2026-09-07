@@ -1,11 +1,17 @@
 const UserOrders = require("../models/UserOrders");
+const PanelNotificationService = require("./PanelNotificationService");
+const mongoose = require("mongoose");
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const User = require("../models/User");
 const UserAddress = require("../models/UserAddress");
+const Seller = require("../models/Seller");
+const { isValidCoords, distanceKm, formatDistance } = require("../util/geo");
+// Admin-set delivery radius (lazy require - HomeScreenService circular import se bachne ke liye)
+const getDeliveryRadiusKm = () =>
+  require("./HomeScreenService")().getDeliveryRadiusKm();
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
-const NotificationService = require("./NotificationService");
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -49,6 +55,34 @@ module.exports = () => {
       if (!deliveryAddress) {
         req.error = "Delivery address not found";
         return next();
+      }
+
+      // Selected address har shop ke admin-set delivery radius ke andar hona
+      // chahiye - home par live location se shop dikhi, par order door ke
+      // address par na chala jaaye. Purane address me coords na ho to skip.
+      if (isValidCoords(deliveryAddress.lat, deliveryAddress.lng)) {
+        const radiusKm = await getDeliveryRadiusKm();
+        const sellerIds = [
+          ...new Set(cart.items.map((i) => String(i.sellerId))),
+        ];
+        const sellers = await Seller.find({ _id: { $in: sellerIds } }).select(
+          "shopName lat lng"
+        );
+        for (const seller of sellers) {
+          if (!isValidCoords(seller.lat, seller.lng)) continue;
+          const km = distanceKm(
+            deliveryAddress.lat,
+            deliveryAddress.lng,
+            seller.lat,
+            seller.lng
+          );
+          if (km > radiusKm) {
+            req.error = `"${seller.shopName}" does not deliver to the selected address (${formatDistance(
+              km
+            )} away, max ${radiusKm} km). Please choose a nearer address.`;
+            return next();
+          }
+        }
       }
 
       // Stock order banate hi atomically reserve hota hai (COD + online dono) —
@@ -126,8 +160,8 @@ module.exports = () => {
       if (paymentMethod !== "online") {
         cart.isActive = false;
         await cart.save();
-        // COD order turant placed — online me payment verify ke baad notify hota hai
-        NotificationService().sendOrderStatusNotification(order, "pending");
+        // Seller/admin panel bell: naya COD order
+        PanelNotificationService().orderPlaced(order);
       }
 
       req.rData = {
@@ -249,6 +283,9 @@ module.exports = () => {
 
       await order.save();
 
+      // Seller/admin panel bell: paid order aaya
+      PanelNotificationService().orderPlaced(order);
+
       // Stock yahan nahi kat-ta — order create hote waqt hi atomically
       // reserve ho chuka hota hai (createOrderFromCart)
 
@@ -257,11 +294,6 @@ module.exports = () => {
       await Cart.updateOne(
         { userId: order.userId, isActive: true, isDeleted: false },
         { $set: { isActive: false } }
-      );
-
-      NotificationService().sendOrderStatusNotification(
-        order,
-        "payment_success"
       );
 
       req.rData = {
@@ -291,8 +323,13 @@ module.exports = () => {
       const userId = req.body.userId;
       const { orderId } = req.params;
 
+      // Mongo _id (app ka normal flow) aur "ORD-..." orderId (push notification
+      // data) dono chalte hain
+      const lookup = mongoose.isValidObjectId(orderId)
+        ? { _id: orderId }
+        : { orderId: orderId };
       // Model ke asli field naam: products, addressId, grandTotal, shippingCost
-      const order = await UserOrders.findById(orderId)
+      const order = await UserOrders.findOne(lookup)
         .populate("userId", "fullName email mobileNumber")
         .populate("products.sellerId", "shopName shopLogo mobile")
         .populate("addressId");
@@ -520,6 +557,8 @@ module.exports = () => {
       }
 
       await order.save();
+      // Seller/admin panel bell: customer ne order cancel kiya
+      PanelNotificationService().orderCancelled(order, "customer");
 
       req.rData = {
         orderId: order._id,

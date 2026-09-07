@@ -48,6 +48,13 @@ const SellerSchema = new Schema(
     lat: { type: Number }, // Google Maps
     lng: { type: Number },
 
+    // lat/lng ka GeoJSON roop — $geoNear (nearby shops) ke liye 2dsphere index.
+    // Seedha set mat karo; lat/lng save hote hi pre-save / updateSeller me sync hota hai
+    location: {
+      type: { type: String, enum: ["Point"] },
+      coordinates: { type: [Number] }, // [lng, lat]
+    },
+
     // ---------------- GST & KYC ----------------
     gstNumber: { type: String, default: "" },
     gstVerified: { type: Boolean, default: false },
@@ -91,5 +98,18 @@ const SellerSchema = new Schema(
   },
   { timestamps: true }
 );
+
+SellerSchema.index({ location: "2dsphere" });
+
+// lat/lng badle to location point bhi saath badle (Seller.create / doc.save path)
+SellerSchema.pre("save", function (next) {
+  const { isValidCoords, toPoint } = require("../util/geo");
+  if (isValidCoords(this.lat, this.lng)) {
+    this.location = toPoint(this.lat, this.lng);
+  } else if (this.isModified("lat") || this.isModified("lng")) {
+    this.location = undefined;
+  }
+  next();
+});
 
 module.exports = mongoose.model("Seller", SellerSchema);

@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import useAuthStore from "../../store/authStore";
 import useProductStore from "../../store/productStore";
+import useCategoryStore from "../../store/categoryStore";
 import useOrderStore from "../../store/orderStore";
 
 import fallbackLogo from "../../assets/Images/newLogo.jpeg";
-import icClose from "../../assets/figma/ic-close-panel.svg";
 import icHome from "../../assets/figma/ic-home.svg";
 import icHomeActive from "../../assets/figma/ic-home-active.svg";
 import icStore from "../../assets/figma/ic-store.svg";
@@ -102,14 +102,26 @@ const Sidebar = ({ onNavigate }) => {
     navigate("/login");
   };
 
-  const productSubItems = [
-    { label: "All Products", path: "/product" },
-    {
-      label: "Add Product",
-      path: "/product",
-      state: { openAdd: true },
-    },
-  ];
+  // Product ke neeche seller ki categories (design: Sneakers / Jacket / T-Shirt / Bag).
+  // Click par product list usi category par filter hoti hai.
+  const { categories, fetchCategories } = useCategoryStore();
+  const activeCategoryId = useProductStore((s) => s.categoryId);
+  const setProductFilter = useProductStore((s) => s.setFilter);
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+  // Product page par ho to list khuli rahe
+  useEffect(() => {
+    if (isActive("/product")) setProductOpen(true);
+  }, [location.pathname]);
+
+  const goToCategory = (categoryId) => {
+    if ((activeCategoryId || "") !== (categoryId || "")) {
+      setProductFilter("categoryId", categoryId || "");
+    }
+    rawNavigate("/product");
+    onNavigate?.();
+  };
 
   return (
     <aside
@@ -171,12 +183,6 @@ const Sidebar = ({ onNavigate }) => {
             </div>
           </div>
         </div>
-        <img
-          src={icClose}
-          alt="Close panel"
-          onClick={() => onNavigate?.()}
-          style={{ width: 22, height: 22, cursor: "pointer", flexShrink: 0 }}
-        />
       </div>
 
       {/* Menu */}
@@ -197,45 +203,93 @@ const Sidebar = ({ onNavigate }) => {
               iconActive={icStoreActive}
               label={`Product (${productTotal})`}
               active={isActive("/product")}
-              onClick={() => setProductOpen((o) => !o)}
+              onClick={() => {
+                setProductOpen(true);
+                goToCategory("");
+              }}
               trailing={
-                <ItemIcon
-                  src={icChevron}
-                  style={{
-                    width: 14,
-                    height: 14,
-                    transform: productOpen ? "rotate(-90deg)" : "rotate(90deg)",
-                    transition: "transform 0.2s",
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setProductOpen((o) => !o);
                   }}
-                />
+                  style={{ display: "flex", alignItems: "center", padding: 4, cursor: "pointer" }}
+                >
+                  <ItemIcon
+                    src={icChevron}
+                    style={{
+                      width: 14,
+                      height: 14,
+                      transform: productOpen ? "rotate(-90deg)" : "rotate(90deg)",
+                      transition: "transform 0.2s",
+                    }}
+                  />
+                </span>
               }
             />
-            {productOpen && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
-                {productSubItems.map((sub) => {
-                  const subActive = isActive(sub.path) && !sub.state;
+            {productOpen && categories.length > 0 && (
+              <div
+                style={{
+                  position: "relative",
+                  marginLeft: 22,
+                  marginTop: 2,
+                  paddingLeft: 14,
+                  // tree ki vertical line
+                  borderLeft: "1.5px solid #E7E7E7",
+                }}
+              >
+                {categories.map((c) => {
+                  const onProducts = isActive("/product");
+                  const subActive = onProducts && (activeCategoryId || "") === c._id;
                   return (
                     <div
-                      key={sub.label}
-                      onClick={() => {
-                        rawNavigate(sub.path, sub.state ? { state: sub.state } : undefined);
-                        onNavigate?.();
-                      }}
+                      key={c._id}
+                      onClick={() => goToCategory(c._id)}
                       style={{
-                        height: 40,
+                        position: "relative",
+                        height: 44,
                         display: "flex",
                         alignItems: "center",
-                        marginLeft: 32,
-                        padding: 8,
-                        borderRadius: 12,
+                        gap: 8,
+                        paddingLeft: 10,
+                        paddingRight: 8,
                         cursor: "pointer",
                         fontSize: 14,
                         fontWeight: subActive ? 700 : 400,
-                        color: subActive ? ACTIVE_TEXT : INACTIVE_TEXT,
-                        background: subActive ? ACTIVE_BG : "transparent",
+                        color: subActive ? "#FF6051" : INACTIVE_TEXT,
                       }}
                     >
-                      {sub.label}
+                      {/* line se item tak dash; selected par coral */}
+                      <span
+                        style={{
+                          position: "absolute",
+                          left: -14,
+                          top: "50%",
+                          marginTop: -1,
+                          width: subActive ? 14 : 10,
+                          height: subActive ? 2 : 1.5,
+                          background: subActive ? "#FF6051" : "#DADADA",
+                          borderRadius: 2,
+                        }}
+                      />
+                      <span
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {c.categoryName || c.name}
+                      </span>
+                      {/* selected category par right arrow */}
+                      {subActive && (
+                        <ItemIcon
+                          src={icChevron}
+                          style={{ width: 12, height: 12, flexShrink: 0 }}
+                        />
+                      )}
                     </div>
                   );
                 })}
@@ -310,9 +364,9 @@ const Sidebar = ({ onNavigate }) => {
           }}
         >
           <div style={{ display: "flex", gap: 8, alignItems: "center", minWidth: 0 }}>
-            {seller?.ownerImage ? (
+            {seller?.shopLogo || seller?.ownerImage ? (
               <img
-                src={seller.ownerImage}
+                src={seller.shopLogo || seller.ownerImage}
                 alt=""
                 style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover", flexShrink: 0 }}
               />

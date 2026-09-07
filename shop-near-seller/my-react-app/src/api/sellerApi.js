@@ -99,3 +99,13 @@ export const deleteDeliveryAgent = (id) =>
 
 export const assignDeliveryAgent = (orderId, agentId) =>
   client.put("/order/seller/assign-agent", { orderId, agentId });
+
+/* ============ NOTIFICATIONS (header bell) ============ */
+export const getSellerNotifications = (params) =>
+  client.get("/seller/notifications", { params });
+export const getSellerUnreadCount = () => client.get("/seller/notifications/unread-count");
+export const markSellerNotificationRead = (id) => client.put(`/seller/notifications/${id}/read`);
+export const markAllSellerNotificationsRead = () => client.put("/seller/notifications/read-all");
+
+// Dashboard map: city-wise customers/orders
+export const getSellerCustomerCities = () => client.get("/order/seller/customers/cities");

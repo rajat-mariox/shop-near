@@ -2,7 +2,6 @@ import "./App.css";
 import { useState, useEffect } from "react";
 import Sidebar from "./components/Sidebar/Sidebar";
 import Header from "./components/Header/Header";
-import SalesTarget from "./components/Dashboard/SalesTarget";
 import StatsCards from "./components/Dashboard/StatsCards";
 import YourSalesThisYearChart from "./components/Dashboard/YourSalesThisYearChart";
 import IncreaseSalesCard from "./components/Dashboard/IncreaseSalesCard";
@@ -32,10 +31,9 @@ function DashboardContent() {
           Dashboard
         </div>
       </div>
-      {/* Row 1: Sales Target + Sales chart | Stat cards + promo */}
+      {/* Row 1: Sales chart | Stat cards + promo */}
       <div className="dash-row" style={{ marginBottom: 22 }}>
         <div className="dash-col" style={{ flex: "1.05 1 460px" }}>
-          <SalesTarget />
           <YourSalesThisYearChart />
         </div>
         <div className="dash-col" style={{ flex: "1 1 440px" }}>

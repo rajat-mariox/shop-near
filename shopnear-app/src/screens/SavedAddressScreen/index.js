@@ -15,6 +15,8 @@ import { Colors } from '../../themes/Colors';
 import { fontScale, moderateScale } from '../../utils/responsive';
 import { listUserAddresses, selectUserAddress, deleteUserAddress } from '../../service/userAddress';
 import { showToast } from '../../utils/toast';
+import { StandaloneTabBar } from '../../routes/MyBottomTabs';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const THEME_COLOR = Colors.theme1;
 // Figma frame 402dp (node 54:1270 "Saved Address")
@@ -90,8 +92,10 @@ const SavedAddressScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
+      {/* Content wrapper: absolute Add button isi ke andar rahe, tab bar ke upar */}
+      <View style={{ flex: 1 }}>
       {/* Header — figma: coral, back, title, heart */}
-      <View style={styles.header}>
+      <ScreenHeader style={styles.header}>
         <TouchableOpacity onPress={() => navigation && navigation.goBack()}>
           <AntDesign name="left" size={moderateScale(20)} color="#fff" />
         </TouchableOpacity>
@@ -99,7 +103,7 @@ const SavedAddressScreen = ({ navigation, route }) => {
         <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Wishlist')}>
           <AntDesign name="hearto" size={moderateScale(20)} color="#fff" />
         </TouchableOpacity>
-      </View>
+      </ScreenHeader>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {loading && addresses.length === 0 ? (
@@ -188,6 +192,9 @@ const SavedAddressScreen = ({ navigation, route }) => {
             : navigation.navigate('PaymentMethod')
         }
       />
+      </View>
+      {/* Checkout flow me Cart, Profile se aaye to Profile tab active */}
+      <StandaloneTabBar activeName={fromCart ? 'Cart' : 'Profile'} />
     </View>
   );
 };

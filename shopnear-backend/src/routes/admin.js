@@ -4,6 +4,7 @@ const CategoryController = require("../controllers/CategoryController");
 const UserController = require("../controllers/UserController");
 const SellerController = require("../controllers/SellerController");
 const OrderController = require("../controllers/OrderController");
+const PanelNotificationController = require("../controllers/PanelNotificationController");
 const AdminValidator = require("../validators/AdminValidator");
 const ResponseMiddleware = require("../middlewares/ResponseMiddleware");
 const ErrorHandlerMiddleware = require("../middlewares/ErrorHandlerMiddleware");
@@ -486,6 +487,32 @@ adminRouter.get(
   "/cms/contact",
   AuthMiddleware().verifyAdminToken,
   ErrorHandlerMiddleware(AdminController().getContactUs),
+  ResponseMiddleware,
+);
+
+/* ---------------- Panel notifications (bell icon) ---------------- */
+adminRouter.get(
+  "/notifications",
+  AuthMiddleware().verifyAdminToken,
+  ErrorHandlerMiddleware(PanelNotificationController().list),
+  ResponseMiddleware,
+);
+adminRouter.get(
+  "/notifications/unread-count",
+  AuthMiddleware().verifyAdminToken,
+  ErrorHandlerMiddleware(PanelNotificationController().unreadCount),
+  ResponseMiddleware,
+);
+adminRouter.put(
+  "/notifications/read-all",
+  AuthMiddleware().verifyAdminToken,
+  ErrorHandlerMiddleware(PanelNotificationController().markAllRead),
+  ResponseMiddleware,
+);
+adminRouter.put(
+  "/notifications/:id/read",
+  AuthMiddleware().verifyAdminToken,
+  ErrorHandlerMiddleware(PanelNotificationController().markRead),
   ResponseMiddleware,
 );
 

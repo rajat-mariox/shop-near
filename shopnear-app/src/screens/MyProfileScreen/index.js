@@ -13,6 +13,7 @@ import { showToast } from '../../utils/toast';
 import PromoModal from '../CartScreen/PromoModal';
 import DeleteAccountModal from './DeleteAccountModal';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
+import ScreenHeader from '../../components/ScreenHeader';
 
 const THEME_COLOR = Colors.theme1;
 // OEM system fonts par text-cut se bachne ke liye
@@ -109,7 +110,7 @@ const MyProfileScreen = ({ navigation }) => {
     /* Navigator status bar area khud handle karta hai, isliye sirf bottom edge */
     <SafeAreaView style={styles.screen} edges={['bottom']}>
       {/* Header */}
-      <View style={styles.headerContainer}>
+      <ScreenHeader style={styles.headerContainer}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -128,7 +129,7 @@ const MyProfileScreen = ({ navigation }) => {
           onPress={() => navigation.navigate('Search')}>
           <AntDesign name="search1" size={moderateScale(20)} color="#fff" />
         </TouchableOpacity>
-      </View>
+      </ScreenHeader>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}

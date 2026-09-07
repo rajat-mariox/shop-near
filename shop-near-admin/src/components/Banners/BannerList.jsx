@@ -16,6 +16,8 @@ const HeaderBgSection = () => {
   const [preview, setPreview] = useState(null);
   const [previewType, setPreviewType] = useState("");
   const [saving, setSaving] = useState(false);
+  // App me background ke upar festive lights dikhani hain ya nahi
+  const [showLights, setShowLights] = useState(true);
   const fileRef = useRef(null);
 
   const load = async () => {
@@ -25,6 +27,7 @@ const HeaderBgSection = () => {
       setCurrent({ url: d.homeHeaderBg || "", type: d.homeHeaderBgType || "" });
       setPreview(d.homeHeaderBg || null);
       setPreviewType(d.homeHeaderBgType || "");
+      setShowLights(d.homeHeaderLights !== false);
     } catch (err) {
       console.error("Failed to fetch header bg:", err);
     }
@@ -47,6 +50,7 @@ const HeaderBgSection = () => {
     if (!file) return alert("Please select an image or video first");
     const fd = new FormData();
     fd.append("bgMedia", file);
+    fd.append("showLights", showLights);
     setSaving(true);
     try {
       await updateHomeHeaderBg(fd);
@@ -58,6 +62,20 @@ const HeaderBgSection = () => {
       alert(err?.response?.data?.message || "Failed to update background");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Lights toggle turant save (bina nayi file ke)
+  const handleLightsToggle = async (checked) => {
+    setShowLights(checked);
+    try {
+      const fd = new FormData();
+      fd.append("showLights", checked);
+      await updateHomeHeaderBg(fd);
+    } catch (err) {
+      console.error(err);
+      setShowLights(!checked);
+      alert(err?.response?.data?.message || "Failed to update lights setting");
     }
   };
 
@@ -112,21 +130,53 @@ const HeaderBgSection = () => {
             }}
           />
         ) : (
-          <img
-            src={preview}
-            alt="Header background preview"
-            style={{
-              display: "block",
-              width: 320,
-              maxHeight: 280,
-              objectFit: "contain",
-              background: "#f7f7f7",
-              borderRadius: 8,
-              marginTop: 10,
-              border: "1px solid #eee",
-            }}
-          />
+          <div style={{ position: "relative", width: 320, marginTop: 10 }}>
+            <img
+              src={preview}
+              alt="Header background preview"
+              style={{
+                display: "block",
+                width: 320,
+                maxHeight: 280,
+                objectFit: "contain",
+                background: "#f7f7f7",
+                borderRadius: 8,
+                border: "1px solid #eee",
+              }}
+            />
+            {showLights && (
+              <img
+                src="/header-lights.png"
+                alt=""
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  left: 0,
+                  width: "100%",
+                  pointerEvents: "none",
+                }}
+              />
+            )}
+          </div>
         ))}
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginTop: 12,
+          fontSize: 13,
+          color: "#444",
+          cursor: "pointer",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={showLights}
+          onChange={(e) => handleLightsToggle(e.target.checked)}
+        />
+        Background ke upar festive lights dikhao (app ke header me jo lights wali line hai)
+      </label>
       <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
         <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "Save Background"}
@@ -151,6 +201,7 @@ const BannerList = () => {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
   const [link, setLink] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [preview, setPreview] = useState(null);
@@ -180,6 +231,7 @@ const BannerList = () => {
   const openAdd = () => {
     setEditing(null);
     setTitle("");
+    setSubtitle("");
     setLink("");
     setIsActive(true);
     setPreview(null);
@@ -191,6 +243,7 @@ const BannerList = () => {
   const openEdit = (b) => {
     setEditing(b._id);
     setTitle(b.title || "");
+    setSubtitle(b.subtitle || "");
     setLink(b.link || "");
     setIsActive(b.isActive !== false);
     setPreview(b.image || b.imageUrl || null);
@@ -217,6 +270,7 @@ const BannerList = () => {
   const handleSave = async () => {
     const fd = new FormData();
     fd.append("title", title);
+    fd.append("subtitle", subtitle);
     fd.append("link", link);
     fd.append("isActive", isActive);
     if (fileRef.current?.files?.[0]) {
@@ -308,6 +362,9 @@ const BannerList = () => {
                   <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
                     {b.title || "Untitled"}
                   </div>
+                  <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+                    {b.subtitle || ""}
+                  </div>
                   <span className={`badge ${b.isActive ? "badge-green" : "badge-grey"}`}>
                     {b.isActive ? "Active" : "Inactive"}
                   </span>
@@ -350,6 +407,15 @@ const BannerList = () => {
                   placeholder="e.g. Festive Fashion Specials"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="form-label">Subtitle (optional)</label>
+                <input
+                  className="form-input"
+                  placeholder="e.g. Up to 40% Off on Gadgets"
+                  value={subtitle}
+                  onChange={(e) => setSubtitle(e.target.value)}
                 />
               </div>
               <div>

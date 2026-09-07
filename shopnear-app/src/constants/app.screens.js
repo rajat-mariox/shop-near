@@ -14,6 +14,7 @@ import FeedbackScreen from '../screens/FeedbackScreen';
 import OrderConfirmedScreen from '../screens/OrderConfirmedScreen';
 import OrderTrackingScreen from '../screens/OrderTrackingScreen';
 import SellerProductsScreen from '../screens/SellerProductsScreen';
+import ShopsByCategoryScreen from '../screens/ShopsByCategoryScreen';
 
 export const AppScreens = {
   SplashScreen,
@@ -31,4 +32,5 @@ export const AppScreens = {
   OrderTrackingScreen,
   ProductDetailScreen,
   SellerProductsScreen,
+  ShopsByCategoryScreen,
 };

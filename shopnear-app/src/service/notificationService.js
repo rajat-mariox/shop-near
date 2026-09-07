@@ -79,6 +79,18 @@ export const registerDeviceToken = async () => {
   }
 };
 
+// App band thi aur notification tap se khuli: Splash pehle token check karke Home
+// par jaata hai (3s timer). Agar hum turant navigate karein to Splash ka
+// navigate('Home') baad me aake tracking screen dhak deta hai. Isliye yahan
+// pending rakhte hain aur Splash ke baad flushPendingNotification() kholta hai.
+let pendingNotification = null;
+
+export const flushPendingNotification = () => {
+  const msg = pendingNotification;
+  pendingNotification = null;
+  if (msg) openFromNotification(msg);
+};
+
 const openFromNotification = (remoteMessage) => {
   const data = remoteMessage?.data || {};
   if (data.type === 'order' && data.orderId) {
@@ -96,13 +108,14 @@ export const setupNotificationListeners = () => {
   if (!f) return () => {};
   const { mod, messaging } = f;
 
-  // Foreground: Android system tray me nahi dikhata, isliye in-app toast.
+  // Foreground: Android system tray me nahi dikhata, isliye in-app card (NotificationToast).
   // Delivery OTP body me hi hota hai; tap karke tracking screen khulti hai.
   const unsubMessage = mod.onMessage(messaging, async (remoteMessage) => {
     const title = remoteMessage?.notification?.title || 'Notification';
     const body = remoteMessage?.notification?.body || '';
     Toast.show({
-      type: 'info',
+      type: 'notification',
+      topOffset: 48,
       text1: title,
       text2: body,
       visibilityTime: 6000,
@@ -120,7 +133,7 @@ export const setupNotificationListeners = () => {
   mod
     .getInitialNotification(messaging)
     .then((remoteMessage) => {
-      if (remoteMessage) setTimeout(() => openFromNotification(remoteMessage), 800);
+      if (remoteMessage) pendingNotification = remoteMessage;
     })
     .catch(() => {});
 

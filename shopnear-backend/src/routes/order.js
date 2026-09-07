@@ -141,6 +141,14 @@ router.get(
   ResponseMiddleware
 );
 
+// Dashboard map: city-wise customer/order counts (+ avg address lat/lng)
+router.get(
+  "/seller/customers/cities",
+  AuthMiddleware().verifySellerToken,
+  ErrorHandlerMiddleware(OrderController.getSellerCustomerCities),
+  ResponseMiddleware
+);
+
 // Get Seller Orders
 router.get(
   "/seller/orders",

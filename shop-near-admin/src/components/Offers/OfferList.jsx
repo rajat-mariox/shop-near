@@ -178,9 +178,26 @@ const OfferList = () => {
                     <td>₹{o.priceStartsAt}</td>
                     <td>{o.displayOnHome ? "Yes" : "No"}</td>
                     <td>
-                      <span className={`badge ${o.isActive ? "badge-green" : "badge-grey"}`}>
-                        {o.isActive ? "Active" : "Inactive"}
-                      </span>
+                      {/* App sirf wahi offers dikhata hai jo active hon AUR aaj validity ke andar hon */}
+                      {(() => {
+                        const now = new Date();
+                        const expired = o.endDate && new Date(o.endDate) < now;
+                        const scheduled = o.startDate && new Date(o.startDate) > now;
+                        const label = !o.isActive
+                          ? "Inactive"
+                          : expired
+                          ? "Expired"
+                          : scheduled
+                          ? "Scheduled"
+                          : "Active";
+                        const cls =
+                          label === "Active" ? "badge-green" : label === "Scheduled" ? "badge-blue" : "badge-grey";
+                        return (
+                          <span className={`badge ${cls}`} title={expired ? "Validity khatam, app me nahi dikhega" : ""}>
+                            {label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td style={{ fontSize: 12 }}>
                       {o.startDate ? new Date(o.startDate).toLocaleDateString() : "—"} →{" "}

@@ -645,6 +645,7 @@ module.exports = () => {
     req.rData = {
       homeHeaderBg: Settings?.homeHeaderBg || "",
       homeHeaderBgType: Settings?.homeHeaderBgType || "",
+      homeHeaderLights: Settings ? Settings.homeHeaderLights !== false : true,
     };
     req.msg = "success";
     next();
@@ -653,35 +654,45 @@ module.exports = () => {
   const updateHomeHeaderBg = async (req, res, next) => {
     console.log("AdminController => updateHomeHeaderBg");
 
-    let homeHeaderBg = "";
-    let homeHeaderBgType = "";
+    const hasFile = !!(req.files && req.files.bgMedia);
+    const showLightsRaw = req.body.showLights;
+    const hasLights = typeof showLightsRaw !== "undefined";
+    const update = {};
 
-    // remove=true bhejne par bg hat jata hai, app default par wapas aa jati hai
-    if (!req.body.remove) {
-      if (!req.files || !req.files.bgMedia) {
-        return res
-          .status(400)
-          .send({ code: 0, message: "bgMedia file is required!", data: {} });
-      }
+    // remove=true: bg hat jata hai, app default par wapas aa jati hai
+    if (req.body.remove) {
+      update.homeHeaderBg = "";
+      update.homeHeaderBgType = "";
+    } else if (hasFile) {
       const file = req.files.bgMedia;
       const uploadRes = await fileUploadService.uploadFileToAws(file);
-      homeHeaderBg = uploadRes.images;
-      homeHeaderBgType = file.mimetype.startsWith("video/")
+      update.homeHeaderBg = uploadRes.images;
+      update.homeHeaderBgType = file.mimetype.startsWith("video/")
         ? "video"
         : "image";
+    } else if (!hasLights) {
+      return res
+        .status(400)
+        .send({ code: 0, message: "bgMedia file is required!", data: {} });
+    }
+    // Lights toggle akela bhi update ho sakta hai (bina nayi file ke)
+    if (hasLights) {
+      update.homeHeaderLights = showLightsRaw === true || showLightsRaw === "true";
     }
 
     const Settings = await SettingsService().fetchByQuery({});
     if (Settings) {
-      await SettingsService().updateSettings(Settings._id, {
-        homeHeaderBg,
-        homeHeaderBgType,
-      });
+      await SettingsService().updateSettings(Settings._id, update);
     } else {
-      await SettingsService().addSettings({ homeHeaderBg, homeHeaderBgType });
+      await SettingsService().addSettings(update);
     }
+    const fresh = await SettingsService().fetchByQuery({});
 
-    req.rData = { homeHeaderBg, homeHeaderBgType };
+    req.rData = {
+      homeHeaderBg: fresh?.homeHeaderBg || "",
+      homeHeaderBgType: fresh?.homeHeaderBgType || "",
+      homeHeaderLights: fresh ? fresh.homeHeaderLights !== false : true,
+    };
     req.msg = "success";
     next();
   };

@@ -117,6 +117,11 @@ const Navigator = () => {
           component={AppScreens.SellerProductsScreen}
           options={{ headerShown: false }}
         />
+        <Stack.Screen
+          name="ShopsByCategory"
+          component={AppScreens.ShopsByCategoryScreen}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
       </NavigationContainer>
     </View>
