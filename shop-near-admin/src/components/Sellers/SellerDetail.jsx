@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   getSellerDetail,
+  setSellerLocation,
   approveSeller,
   rejectSeller,
   toggleSellerStatus,
@@ -26,6 +27,87 @@ const SellerDetail = () => {
   const [rejectModal, setRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
+  // Shop location editor (address search -> lat/lng, ya manual)
+  const [locOpen, setLocOpen] = useState(false);
+  const [locQuery, setLocQuery] = useState("");
+  const [locSuggestions, setLocSuggestions] = useState([]);
+  const [locCoords, setLocCoords] = useState({ lat: "", lng: "" });
+  const [locSaving, setLocSaving] = useState(false);
+  const locTimer = React.useRef(null);
+
+  // Photon (OpenStreetMap) autocomplete - free, no key. Seller onboarding wala hi tareeka.
+  // Plain fetch, taaki admin token bahar ke API par na jaye.
+  const handleLocQuery = (val) => {
+    setLocQuery(val);
+    if (locTimer.current) clearTimeout(locTimer.current);
+    if (!val || val.trim().length < 3) {
+      setLocSuggestions([]);
+      return;
+    }
+    locTimer.current = setTimeout(async () => {
+      try {
+        const url =
+          "https://photon.komoot.io/api/?limit=5&lang=en&bbox=68.1,6.5,97.4,35.7&q=" +
+          encodeURIComponent(val.trim());
+        const json = await (await fetch(url)).json();
+        const items = (json.features || [])
+          .map((f) => {
+            const p = f.properties || {};
+            const label = [p.name, p.street, p.district, p.city, p.state, p.postcode]
+              .filter(Boolean)
+              .filter((v, i, arr) => arr.indexOf(v) === i)
+              .join(", ");
+            return {
+              label,
+              city: p.city || p.district || "",
+              lat: f.geometry?.coordinates?.[1],
+              lng: f.geometry?.coordinates?.[0],
+            };
+          })
+          .filter((s) => s.label && s.lat && s.lng);
+        setLocSuggestions(items);
+      } catch {
+        setLocSuggestions([]);
+      }
+    }, 350);
+  };
+
+  const openLocEditor = () => {
+    setLocQuery(seller?.address || "");
+    setLocCoords({ lat: seller?.lat ?? "", lng: seller?.lng ?? "" });
+    setLocSuggestions([]);
+    setLocOpen(true);
+  };
+
+  const pickLocSuggestion = (s) => {
+    setLocQuery(s.label);
+    setLocCoords({ lat: s.lat, lng: s.lng, city: s.city });
+    setLocSuggestions([]);
+  };
+
+  const saveLocation = async () => {
+    const lat = parseFloat(locCoords.lat);
+    const lng = parseFloat(locCoords.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      alert("Pehle address search karke pin chuno, ya lat/lng bharo");
+      return;
+    }
+    setLocSaving(true);
+    try {
+      await setSellerLocation(id, {
+        lat,
+        lng,
+        address: locQuery || undefined,
+        city: locCoords.city || undefined,
+      });
+      setLocOpen(false);
+      fetchSeller();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to save location");
+    } finally {
+      setLocSaving(false);
+    }
+  };
 
   const fetchSeller = async () => {
     try {
@@ -245,19 +327,112 @@ const SellerDetail = () => {
           <InfoRow
             label="Shop Location"
             value={
-              seller.lat && seller.lng ? (
-                <a
-                  href={`https://www.google.com/maps?q=${seller.lat},${seller.lng}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {Number(seller.lat).toFixed(5)}, {Number(seller.lng).toFixed(5)} (open map)
-                </a>
-              ) : (
-                <span style={{ color: "#d97706" }}>Not set - cannot approve</span>
-              )
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                {seller.lat && seller.lng ? (
+                  <a
+                    href={`https://www.google.com/maps?q=${seller.lat},${seller.lng}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {Number(seller.lat).toFixed(5)}, {Number(seller.lng).toFixed(5)} (open map)
+                  </a>
+                ) : (
+                  <span style={{ color: "#d97706" }}>Not set - cannot approve, app me nearby nahi dikhega</span>
+                )}
+                <button className="btn btn-outline btn-sm" onClick={openLocEditor}>
+                  {seller.lat && seller.lng ? "Change" : "Set location"}
+                </button>
+              </span>
             }
           />
+          {locOpen && (
+            <div
+              style={{
+                border: "1px solid #e7e7e7",
+                borderRadius: 12,
+                padding: 14,
+                margin: "6px 0 12px",
+                background: "#fafafa",
+                display: "grid",
+                gap: 10,
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 14 }}>Shop location set karo</div>
+              <div style={{ position: "relative" }}>
+                <input
+                  className="form-input"
+                  placeholder="Shop ka address / area / landmark likho (e.g. Sector 18, Noida)"
+                  value={locQuery}
+                  onChange={(e) => handleLocQuery(e.target.value)}
+                  autoComplete="off"
+                />
+                {locSuggestions.length > 0 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      background: "#fff",
+                      border: "1px solid #e7e7e7",
+                      borderRadius: 8,
+                      zIndex: 20,
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+                      maxHeight: 220,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {locSuggestions.map((s, i) => (
+                      <div
+                        key={i}
+                        onClick={() => pickLocSuggestion(s)}
+                        style={{ padding: "8px 12px", cursor: "pointer", fontSize: 13, borderBottom: "1px solid #f3f3f3" }}
+                      >
+                        {s.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <input
+                  className="form-input"
+                  style={{ width: 160 }}
+                  placeholder="Latitude"
+                  value={locCoords.lat}
+                  onChange={(e) => setLocCoords((c) => ({ ...c, lat: e.target.value }))}
+                />
+                <input
+                  className="form-input"
+                  style={{ width: 160 }}
+                  placeholder="Longitude"
+                  value={locCoords.lng}
+                  onChange={(e) => setLocCoords((c) => ({ ...c, lng: e.target.value }))}
+                />
+                {locCoords.lat && locCoords.lng ? (
+                  <a
+                    href={`https://www.google.com/maps?q=${locCoords.lat},${locCoords.lng}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: 13 }}
+                  >
+                    Map par check karo
+                  </a>
+                ) : null}
+              </div>
+              <div style={{ fontSize: 12, color: "#888" }}>
+                Address search se pin apne aap aata hai. Google Maps se exact lat/lng bhi paste kar sakte ho.
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-primary btn-sm" onClick={saveLocation} disabled={locSaving}>
+                  {locSaving ? "Saving..." : "Save location"}
+                </button>
+                <button className="btn btn-outline btn-sm" onClick={() => setLocOpen(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
           <InfoRow
             label="Shop Timing"
             value={
