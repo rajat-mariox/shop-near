@@ -38,9 +38,10 @@ export const getCurrentLocation = async () => {
     // Pehle network-based (indoors bhi turant), na mile to GPS high-accuracy
     let pos;
     try {
-      pos = await getPosition({ enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
+      // maximumAge 0: har baar fresh GPS, purana cached fix nahi
+      pos = await getPosition({ enableHighAccuracy: false, timeout: 10000, maximumAge: 0 });
     } catch {
-      pos = await getPosition({ enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 });
+      pos = await getPosition({ enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
     }
     return { lat: pos.coords.latitude, lng: pos.coords.longitude };
   } catch {
