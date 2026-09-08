@@ -30,6 +30,13 @@ app.use(
 // Mount all routes
 app.use("/v1/api", require("./src/routes"));
 
+// Public pages (bina login) - Play Store listing ke liye:
+//   https://backend.aaspass.net/privacy-policy   (Privacy policy URL)
+//   https://backend.aaspass.net/delete-account   (Data safety -> Account deletion URL)
+const PublicPagesController = require("./src/controllers/PublicPagesController")();
+app.get("/privacy-policy", PublicPagesController.privacyPolicy);
+app.get("/delete-account", PublicPagesController.deleteAccount);
+
 // Health route
 app.use("/", (req, res) => {
   res.send("Hello from main");
