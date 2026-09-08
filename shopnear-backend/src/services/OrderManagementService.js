@@ -2,6 +2,8 @@ const UserOrders = require("../models/UserOrders");
 const PanelNotificationService = require("./PanelNotificationService");
 // Customer app ko FCM push (order placed / payment success / cancelled)
 const NotificationService = require("./NotificationService");
+// Unpaid online orders lists me nahi dikhne chahiye (payment pehle hoti hai)
+const { HIDE_UNPAID_ONLINE } = require("./PaymentExpiryService")();
 const mongoose = require("mongoose");
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
@@ -454,7 +456,9 @@ module.exports = () => {
 
       // Model ke field naam: orderId, products, grandTotal
       // ("cart" status enum me hai hi nahi, isliye woh filter hata diya)
-      let query = { userId };
+      // Unpaid online (Razorpay cancel/fail) orders "Ongoing" me nahi dikhte —
+      // 15 min baad auto-cancel hoke Complete tab me cancelled dikhte hain
+      let query = { userId, ...HIDE_UNPAID_ONLINE };
 
       // status comma-separated bhi ho sakta hai, jaise "pending,confirmed,processing"
       if (status) {
@@ -549,6 +553,9 @@ module.exports = () => {
       if (wasPaid) {
         // TODO: Initiate refund through Razorpay
         order.paymentStatus = "refunded";
+      } else if (order.paymentMode === "online") {
+        // Razorpay cancel/fail par app yahan aati hai — payment failed mark
+        order.paymentStatus = "failed";
       }
 
       order.status = "cancelled";

@@ -47,6 +47,17 @@ const runPurgeJob = () => {
 setTimeout(runPurgeJob, 30 * 1000);
 setInterval(runPurgeJob, 12 * 60 * 60 * 1000);
 
+// Unpaid online orders (Razorpay cancel/fail/app band) 15 min baad auto-cancel
+// + stock wapas. Har 5 min chalta hai.
+const PaymentExpiryService = require("./src/services/PaymentExpiryService");
+const runPaymentExpiryJob = () => {
+  PaymentExpiryService()
+    .expireStaleUnpaidOrders()
+    .catch((err) => console.error("Payment expiry job failed:", err));
+};
+setTimeout(runPaymentExpiryJob, 20 * 1000);
+setInterval(runPaymentExpiryJob, 5 * 60 * 1000);
+
 // ✅ Start the server
 app.listen(PORT, () => {
   console.log("service listening on port " + PORT);

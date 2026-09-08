@@ -1,5 +1,7 @@
 const UserOrders = require("../models/UserOrders");
 const NotificationService = require("./NotificationService");
+// Unpaid online orders (payment cancel/fail) seller/admin lists me nahi dikhte
+const { HIDE_UNPAID_ONLINE } = require("./PaymentExpiryService")();
 var ObjectId = require("mongoose").Types.ObjectId;
 
 module.exports = () => {
@@ -116,6 +118,7 @@ module.exports = () => {
 
       const searchQuery = {
         "products.sellerId": new ObjectId(sellerId),
+        ...HIDE_UNPAID_ONLINE,
         ...query,
       };
 
@@ -143,6 +146,7 @@ module.exports = () => {
     return new Promise(function (resolve, reject) {
       const searchQuery = {
         "products.sellerId": new ObjectId(sellerId),
+        ...HIDE_UNPAID_ONLINE,
         ...query,
       };
       let orm = UserOrders.countDocuments(searchQuery);
@@ -699,7 +703,7 @@ module.exports = () => {
       page = page ? parseInt(page) : 1;
       limit = limit ? parseInt(limit) : 10;
 
-      let orm = UserOrders.find(query)
+      let orm = UserOrders.find({ ...HIDE_UNPAID_ONLINE, ...query })
         .populate("userId", "fullName email mobileNumber")
         .populate("addressId")
         .populate("products.productId", "productName")
@@ -718,7 +722,7 @@ module.exports = () => {
    */
   const countAllOrders = (query) => {
     return new Promise(function (resolve, reject) {
-      let orm = UserOrders.countDocuments(query);
+      let orm = UserOrders.countDocuments({ ...HIDE_UNPAID_ONLINE, ...query });
       orm.then(resolve).catch(reject);
     });
   };
