@@ -2,7 +2,7 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 // Firebase (FCM): google-services.json Firebase console (project asspass-c7b97,
-// package com.shopnear) se download karke android/app/ me rakho. File na ho to
+// package aaspas.app) se download karke android/app/ me rakho. File na ho to
 // plugin skip hota hai taaki build na toote (push tab kaam nahi karega).
 if (file("google-services.json").exists()) {
     apply plugin: "com.google.gms.google-services"
@@ -88,7 +88,9 @@ android {
 
     namespace "com.shopnear"
     defaultConfig {
-        applicationId "com.shopnear"
+        // Play Store package name (Play Console me app aaspas.app se register hai).
+        // namespace com.shopnear hi rehta hai (Kotlin/Java package), sirf applicationId alag hai.
+        applicationId "aaspas.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

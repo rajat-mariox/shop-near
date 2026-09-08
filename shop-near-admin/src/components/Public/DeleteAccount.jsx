@@ -113,7 +113,7 @@ const DeleteAccount = () => {
   return (
     <PublicLayout
       title="Delete your Aaspass account"
-      subtitle="Aaspass (com.shopnear) · Android app"
+      subtitle="Aaspass (aaspas.app) · Android app"
       footer={
         <>
           Read our <Link to="/privacy-policy">Privacy Policy</Link>. Need help

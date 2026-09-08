@@ -169,7 +169,7 @@ const PrivacyPolicy = () => {
   return (
     <PublicLayout
       title="Privacy Policy"
-      subtitle={`Aaspass (com.shopnear) · Last updated: ${formatDate(updatedAt)}`}
+      subtitle={`Aaspass (aaspas.app) · Last updated: ${formatDate(updatedAt)}`}
       footer={
         <>
           Want to delete your account? Go to{" "}
