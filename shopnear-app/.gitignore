@@ -76,3 +76,6 @@ yarn-error.log
 
 # Firebase config (per-env, Firebase console se download)
 android/app/google-services.json
+
+# Release upload keystore credentials (never commit)
+android/keystore.properties
