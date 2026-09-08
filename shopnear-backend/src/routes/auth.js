@@ -2,6 +2,7 @@ const express = require("express");
 const authRouter = express.Router();
 const AuthValidator = require("../validators/AuthValidator");
 const AuthController = require("../controllers/AuthController");
+const AccountDeletionController = require("../controllers/AccountDeletionController");
 const ErrorHandlerMiddleware = require("../middlewares/ErrorHandlerMiddleware");
 const ResponseMiddleware = require("../middlewares/ResponseMiddleware");
 const AuthMiddleware = require("../middlewares/AuthMiddleware");
@@ -45,5 +46,22 @@ authRouter.put(
 //   ErrorHandlerMiddleware(AuthController().logout),
 //   ResponseMiddleware
 // );
+
+// Public account deletion (Play Store "Delete account" URL -> /delete-account page)
+authRouter.post(
+  "/delete-account/request-otp",
+  authRateLimiter,
+  AuthValidator().validateLogin,
+  ErrorHandlerMiddleware(AccountDeletionController().requestOtp),
+  ResponseMiddleware
+);
+
+authRouter.post(
+  "/delete-account/confirm",
+  authRateLimiter,
+  AuthValidator().validateOtp,
+  ErrorHandlerMiddleware(AccountDeletionController().confirm),
+  ResponseMiddleware
+);
 
 module.exports = authRouter;

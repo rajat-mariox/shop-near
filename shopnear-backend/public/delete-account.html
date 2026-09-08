@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delete your Aaspass account</title>
+<meta name="description" content="Request deletion of your Aaspass account and associated data.">
+<style>
+  :root { --red:#EE3E35; --ink:#1c1c1e; --muted:#6b6b70; --line:#e6e6ea; --bg:#f6f6f8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color:var(--ink); background:var(--bg); line-height:1.55; }
+  .wrap { max-width:640px; margin:0 auto; padding:32px 20px 60px; }
+  header { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
+  .logo { width:44px; height:44px; border-radius:12px; background:var(--red); color:#fff; font-weight:700; font-size:22px; display:flex; align-items:center; justify-content:center; flex:none; }
+  h1 { font-size:24px; margin:0; }
+  .sub { color:var(--muted); margin:2px 0 0; font-size:14px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:16px; }
+  h2 { font-size:17px; margin:0 0 10px; }
+  p, li { font-size:15px; }
+  ol, ul { padding-left:20px; margin:8px 0; }
+  label { display:block; font-size:13px; font-weight:600; margin:14px 0 6px; }
+  input, select, textarea { width:100%; font:inherit; padding:11px 12px; border:1px solid #cfcfd6; border-radius:10px; background:#fff; }
+  textarea { min-height:70px; resize:vertical; }
+  .row { display:flex; gap:8px; }
+  .row .cc { width:90px; flex:none; }
+  button { width:100%; margin-top:16px; padding:13px; font:inherit; font-weight:600; border:0; border-radius:10px; background:var(--red); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.55; cursor:default; }
+  button.ghost { background:#fff; color:var(--ink); border:1px solid #cfcfd6; margin-top:8px; }
+  .msg { margin-top:12px; font-size:14px; padding:10px 12px; border-radius:10px; display:none; }
+  .msg.err { display:block; background:#fdecec; color:#9b1c14; }
+  .msg.ok { display:block; background:#e9f8ee; color:#176b34; }
+  .warn { background:#fff7e6; border:1px solid #f4d9a3; color:#7a4b00; padding:10px 12px; border-radius:10px; font-size:14px; }
+  .hidden { display:none; }
+  footer { color:var(--muted); font-size:13px; margin-top:24px; }
+  footer a { color:var(--red); }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  td { padding:6px 0; border-bottom:1px solid var(--line); vertical-align:top; }
+  td:first-child { font-weight:600; width:40%; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">A</div>
+    <div>
+      <h1>Delete your Aaspass account</h1>
+      <p class="sub">Aaspass (com.shopnear) &middot; Android app</p>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>How to request account deletion</h2>
+    <p>You can delete your Aaspass account either from inside the app or using the form on this page. Both methods delete the same data.</p>
+    <p><strong>From the app:</strong></p>
+    <ol>
+      <li>Open the Aaspass app and log in.</li>
+      <li>Go to <strong>My Profile</strong>.</li>
+      <li>Tap <strong>Delete account</strong>, choose a reason and confirm.</li>
+    </ol>
+    <p><strong>From this page:</strong> enter the mobile number registered with your account, verify the OTP sent to it, and confirm. No login is needed.</p>
+  </div>
+
+  <div class="card">
+    <h2>What happens to your data</h2>
+    <p>Your account is scheduled for deletion immediately and you are logged out from all devices. There is a <strong>7&#8209;day grace period</strong>: if you log in again within 7 days, the deletion is cancelled and your account is restored. After 7 days the deletion is permanent and cannot be undone.</p>
+    <table>
+      <tr><td>Deleted permanently</td><td>Name, email, date of birth, profile photo, mobile number, saved addresses, location, cart, wishlist, notification tokens and login sessions.</td></tr>
+      <tr><td>Retained</td><td>Order and payment records are kept for legal, tax (GST) and fraud-prevention purposes, but they are anonymised and no longer linked to your personal details.</td></tr>
+      <tr><td>Retention period</td><td>Personal data is removed within 7 days of the request. Anonymised order records are kept as required by law.</td></tr>
+    </table>
+  </div>
+
+  <div class="card" id="form-card">
+    <h2>Request deletion now</h2>
+
+    <div id="step1">
+      <label for="mobile">Registered mobile number</label>
+      <div class="row">
+        <select id="cc" class="cc"><option value="+91">+91</option></select>
+        <input id="mobile" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number" autocomplete="tel-national">
+      </div>
+      <button id="btnSend">Send OTP</button>
+    </div>
+
+    <div id="step2" class="hidden">
+      <p class="sub">OTP sent to <strong id="sentTo"></strong>. It is valid for 5 minutes.</p>
+      <label for="otp">Enter OTP</label>
+      <input id="otp" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit OTP" autocomplete="one-time-code">
+      <label for="reason">Reason (optional)</label>
+      <select id="reason">
+        <option value="">Select a reason</option>
+        <option>I don't find the app useful</option>
+        <option>I found a better alternative</option>
+        <option>Too many notifications</option>
+        <option>Privacy concerns</option>
+        <option>Other</option>
+      </select>
+      <textarea id="reasonText" placeholder="Anything else you want to tell us (optional)"></textarea>
+      <div class="warn" style="margin-top:14px">This will schedule your account and data for permanent deletion after 7 days. Log in within 7 days to cancel.</div>
+      <button id="btnConfirm">Delete my account</button>
+      <button id="btnBack" class="ghost">Change number</button>
+    </div>
+
+    <div id="step3" class="hidden">
+      <p><strong>Your deletion request has been received.</strong></p>
+      <p>Your account is now scheduled for permanent deletion in 7 days, and you have been logged out from all devices. If you change your mind, simply log in to the Aaspass app within 7 days and your account will be restored.</p>
+    </div>
+
+    <div id="msg" class="msg"></div>
+  </div>
+
+  <footer>
+    Read our <a href="/privacy-policy">Privacy Policy</a>. Need help with your request? Contact us from the <strong>Help &amp; Support</strong> section in the app.
+  </footer>
+</div>
+
+<script>
+(function () {
+  var API = "/v1/api/auth/delete-account";
+  var txnId = null;
+  var $ = function (id) { return document.getElementById(id); };
+  var msg = $("msg");
+
+  function show(text, type) { msg.textContent = text; msg.className = "msg " + type; }
+  function clear() { msg.className = "msg"; msg.textContent = ""; }
+  function step(n) {
+    ["step1", "step2", "step3"].forEach(function (s, i) { $(s).classList.toggle("hidden", i !== n - 1); });
+    clear();
+  }
+  function post(path, body) {
+    return fetch(API + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).then(function (r) { return r.json().catch(function () { return { code: 0, message: "Server error" }; }); });
+  }
+
+  $("btnSend").onclick = function () {
+    var mobile = $("mobile").value.trim();
+    if (!/^[6-9]\d{9}$/.test(mobile)) { show("Please enter a valid 10-digit mobile number.", "err"); return; }
+    var b = $("btnSend"); b.disabled = true; clear();
+    post("/request-otp", { countryCode: $("cc").value, mobileNumber: mobile })
+      .then(function (res) {
+        if (res.code === 1 && res.data && res.data.txnId) {
+          txnId = res.data.txnId;
+          $("sentTo").textContent = $("cc").value + " " + mobile;
+          step(2);
+          if (res.data.alreadyRequested) show("A deletion request is already pending for this account. Confirming again keeps the original schedule.", "ok");
+        } else {
+          show(res.message === "user detail not found with given id"
+            ? "No Aaspass account found with this mobile number."
+            : (res.message || "Could not send OTP. Please try again."), "err");
+        }
+      })
+      .catch(function () { show("Network error. Please try again.", "err"); })
+      .then(function () { b.disabled = false; });
+  };
+
+  $("btnBack").onclick = function () { txnId = null; $("otp").value = ""; step(1); };
+
+  $("btnConfirm").onclick = function () {
+    var otp = $("otp").value.trim();
+    if (!/^\d{4,6}$/.test(otp)) { show("Please enter the OTP you received.", "err"); return; }
+    var reason = [$("reason").value, $("reasonText").value.trim()].filter(Boolean).join(" - ");
+    var b = $("btnConfirm"); b.disabled = true; clear();
+    post("/confirm", { txnId: txnId, otp: otp, reason: reason })
+      .then(function (res) {
+        if (res.code === 1) { step(3); }
+        else { show(res.message || "Could not verify OTP. Please try again.", "err"); }
+      })
+      .catch(function () { show("Network error. Please try again.", "err"); })
+      .then(function () { b.disabled = false; });
+  };
+})();
+</script>
+</body>
+</html>

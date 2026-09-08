@@ -115,7 +115,17 @@ module.exports = (lang = "en") => {
     en: "admin not found with given email",
   };
 
+  const account_deletion_scheduled = {
+    en: "account deletion scheduled, log in within 7 days to cancel",
+  };
+
+  const too_many_attempts = {
+    en: "too many attempts, try again later",
+  };
+
   return {
+    account_deletion_scheduled: account_deletion_scheduled[lang],
+    too_many_attempts: too_many_attempts[lang],
     user_already_found: user_already_found[lang],
     success: success[lang],
     logout: logout[lang],
