@@ -66,9 +66,25 @@ module.exports = () => {
     res.type("html").send(template);
   };
 
+  // JSON version - admin panel (admin.aaspass.net/privacy-policy) isse content leta hai
+  const privacyPolicyJson = async (req, res) => {
+    let content = "";
+    let updatedAt = null;
+    try {
+      const settings = await SettingsService().fetchByQuery({});
+      if (settings && settings.privacyPolicy && settings.privacyPolicy.trim()) {
+        content = settings.privacyPolicy;
+        updatedAt = settings.updatedAt;
+      }
+    } catch (err) {
+      console.error("PublicPagesController => privacyPolicyJson failed", err.message);
+    }
+    res.send({ code: 1, message: "success", data: { content, updatedAt } });
+  };
+
   const deleteAccount = (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, "delete-account.html"));
   };
 
-  return { privacyPolicy, deleteAccount };
+  return { privacyPolicy, privacyPolicyJson, deleteAccount };
 };

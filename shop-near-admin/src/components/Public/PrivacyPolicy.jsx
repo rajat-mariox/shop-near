@@ -1,0 +1,197 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { getPublicPrivacyPolicy } from "../../api/adminApi";
+import PublicLayout from "./PublicLayout";
+
+const formatDate = (d) =>
+  new Date(d || Date.now()).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+// Admin CMS ka plain text: blank line = paragraph
+const cmsParagraphs = (text) =>
+  String(text)
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+// CMS khali ho to yeh default policy dikhti hai
+const DefaultPolicy = () => (
+  <>
+    <h2>1. Who we are</h2>
+    <p>
+      Aaspass is a hyperlocal shopping app that lets you discover nearby shops
+      and order products for delivery. This policy explains what information we
+      collect when you use the Aaspass Android app and how we use and protect
+      it.
+    </p>
+
+    <h2>2. Information we collect</h2>
+    <ul>
+      <li>
+        <strong>Account details:</strong> mobile number (used for OTP login),
+        and optionally your name, email address, date of birth and profile
+        photo.
+      </li>
+      <li>
+        <strong>Delivery addresses</strong> you save in the app.
+      </li>
+      <li>
+        <strong>Location:</strong> your approximate or precise device location,
+        only when you allow it, to show shops and offers near you and to
+        calculate delivery.
+      </li>
+      <li>
+        <strong>Orders and payments:</strong> items ordered, order status,
+        delivery details and payment status. Card, UPI and bank details are
+        handled by our payment partner and are never stored by us.
+      </li>
+      <li>
+        <strong>App activity:</strong> cart, wishlist, ratings, feedback and
+        support requests.
+      </li>
+      <li>
+        <strong>Device information:</strong> device type and a
+        push-notification token so we can send order updates.
+      </li>
+    </ul>
+
+    <h2>3. How we use your information</h2>
+    <ul>
+      <li>To create and secure your account and log you in via OTP.</li>
+      <li>
+        To show nearby shops, products and offers, and to place, deliver and
+        track your orders.
+      </li>
+      <li>To process payments and refunds through our payment partner.</li>
+      <li>
+        To send order status updates and, with your consent, offers and
+        notifications. You can turn notifications off at any time.
+      </li>
+      <li>To provide customer support and to improve the app.</li>
+      <li>
+        To prevent fraud and comply with legal obligations, including tax and
+        accounting rules.
+      </li>
+    </ul>
+
+    <h2>4. Who we share it with</h2>
+    <ul>
+      <li>
+        <strong>Sellers</strong> on Aaspass receive the details needed to fulfil
+        your order: your name, delivery address, mobile number and order items.
+      </li>
+      <li>
+        <strong>Payment gateway</strong> (such as Razorpay) to process online
+        payments.
+      </li>
+      <li>
+        <strong>SMS and push notification providers</strong> (such as MSG91 and
+        Google Firebase Cloud Messaging) to deliver OTPs and order updates.
+      </li>
+      <li>
+        <strong>Cloud hosting and storage providers</strong> (such as Amazon Web
+        Services) where our servers and uploaded images are hosted.
+      </li>
+      <li>Authorities, when required by law.</li>
+    </ul>
+    <p>We do not sell your personal information to anyone.</p>
+
+    <h2>5. Data retention</h2>
+    <p>
+      We keep your account data for as long as your account is active. Order
+      and payment records are retained for as long as required by tax,
+      accounting and consumer-protection laws, after which they are deleted or
+      anonymised.
+    </p>
+
+    <h2>6. Deleting your account and data</h2>
+    <p>
+      You can delete your Aaspass account at any time from{" "}
+      <strong>My Profile &gt; Delete account</strong> inside the app, or without
+      the app at <Link to="/delete-account">this page</Link>. Your account is
+      scheduled for deletion immediately with a 7-day grace period during which
+      logging in restores it. After 7 days your personal data, addresses, cart
+      and wishlist are permanently deleted, and any order records we must keep
+      by law are anonymised so they are no longer linked to you.
+    </p>
+
+    <h2>7. Security</h2>
+    <p>
+      Data is transmitted over encrypted (HTTPS) connections and stored on
+      access-controlled servers. Login uses one-time passwords instead of stored
+      passwords.
+    </p>
+
+    <h2>8. Children</h2>
+    <p>
+      Aaspass is not directed at children under 18, and we do not knowingly
+      collect personal information from them.
+    </p>
+
+    <h2>9. Changes to this policy</h2>
+    <p>
+      We may update this policy from time to time. The latest version will
+      always be available at this page, with the date of the last update shown
+      at the top.
+    </p>
+
+    <h2>10. Contact us</h2>
+    <p>
+      For any questions about this policy or your data, contact us through the{" "}
+      <strong>Help &amp; Support</strong> section in the Aaspass app.
+    </p>
+  </>
+);
+
+const PrivacyPolicy = () => {
+  const [content, setContent] = useState("");
+  const [updatedAt, setUpdatedAt] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    document.title = "Aaspass Privacy Policy";
+    getPublicPrivacyPolicy()
+      .then((res) => {
+        const d = res.data?.data || {};
+        setContent(d.content || "");
+        setUpdatedAt(d.updatedAt || null);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const paragraphs = content.trim() ? cmsParagraphs(content) : [];
+
+  return (
+    <PublicLayout
+      title="Privacy Policy"
+      subtitle={`Aaspass (com.shopnear) · Last updated: ${formatDate(updatedAt)}`}
+      footer={
+        <>
+          Want to delete your account? Go to{" "}
+          <Link to="/delete-account">Delete account</Link>.
+        </>
+      }
+    >
+      <div className="pub-card">
+        {loading ? (
+          <p className="pub-sub">Loading...</p>
+        ) : paragraphs.length ? (
+          <div className="pub-cms">
+            {paragraphs.map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
+        ) : (
+          <DefaultPolicy />
+        )}
+      </div>
+    </PublicLayout>
+  );
+};
+
+export default PrivacyPolicy;

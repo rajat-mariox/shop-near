@@ -148,3 +148,10 @@ export const getAdminNotifications = (params) =>
 export const getAdminUnreadCount = () => client.get("/admin/notifications/unread-count");
 export const markAdminNotificationRead = (id) => client.put(`/admin/notifications/${id}/read`);
 export const markAllAdminNotificationsRead = () => client.put("/admin/notifications/read-all");
+
+// Public pages (no auth) - /privacy-policy and /delete-account
+export const getPublicPrivacyPolicy = () => client.get("/cms/privacy");
+export const requestAccountDeletionOtp = (data) =>
+  client.post("/auth/delete-account/request-otp", data);
+export const confirmAccountDeletion = (data) =>
+  client.post("/auth/delete-account/confirm", data);
