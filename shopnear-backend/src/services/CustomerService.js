@@ -420,7 +420,31 @@ module.exports = () => {
       // exact naam; seller ne brand set na kiya ho to product ke naam me brand
       // ka poora word (jaise "Nike Quest 6 ...") bhi count hota hai.
       const escaped = brand.brand.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+      // Sirf nearby shops (admin radius) ke products. Coords: app ka live GPS
+      // (?lat&lng), warna user ka saved address. Coords na ho to khali list +
+      // hasLocation=false (Search/Home jaisa behaviour).
+      const coords = await homeSvc().resolveUserCoords(
+        req.query.lat,
+        req.query.lng,
+        req.body.userId
+      );
+      const radiusKm = await homeSvc().getDeliveryRadiusKm();
+      const brandInfo = { _id: brand._id, name: brand.brand, logo: brand.image };
+      if (!coords) {
+        req.rData = {
+          brand: brandInfo,
+          products: [],
+          nearby: { hasLocation: false, radiusKm },
+          pagination: { currentPage: page, totalPages: 0, totalResults: 0, resultsPerPage: limit },
+        };
+        req.msg = "Products fetched successfully";
+        return next();
+      }
+      const nearbySellerIds = await homeSvc().getNearbySellerIds(coords, radiusKm);
+
       const query = {
+        shopId: { $in: nearbySellerIds },
         $or: [
           { brand: { $regex: "^\\s*" + escaped + "\\s*$", $options: "i" } },
           {
@@ -463,8 +487,9 @@ module.exports = () => {
       }));
 
       req.rData = {
-        brand: { _id: brand._id, name: brand.brand, logo: brand.image },
+        brand: brandInfo,
         products: formattedProducts,
+        nearby: { hasLocation: true, radiusKm },
         pagination: {
           currentPage: page,
           totalPages: Math.ceil(total / limit),

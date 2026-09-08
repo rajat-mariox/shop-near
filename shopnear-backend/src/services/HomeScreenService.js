@@ -91,6 +91,33 @@ module.exports = () => {
    * Nearby shops - user ke coords se admin-set radius ke andar, paas wali pehle.
    * Seller.location (2dsphere) par $geoNear chalta hai; coords na ho to [].
    */
+  /**
+   * Sirf nearby (admin radius) approved shops ki ids — brand/product listing
+   * ko nearby shops tak seemit karne ke liye. coords na ho to [].
+   */
+  const getNearbySellerIds = async (coords, radiusKm, limit = 500) => {
+    if (!coords) return [];
+    const rows = await Seller.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [coords.lng, coords.lat] },
+          distanceField: "distanceMeters",
+          maxDistance: radiusKm * 1000,
+          spherical: true,
+          query: {
+            status: "approved",
+            isActive: true,
+            isDeleted: false,
+            shopName: { $exists: true, $ne: "" },
+          },
+        },
+      },
+      { $limit: limit },
+      { $project: { _id: 1 } },
+    ]);
+    return rows.map((r) => r._id);
+  };
+
   const getNearbyShops = async (coords, radiusKm, limit = 10) => {
     if (!coords) return [];
 
@@ -415,6 +442,7 @@ module.exports = () => {
     getActiveBanners,
     getShopCategories,
     getNearbyShops,
+    getNearbySellerIds,
     resolveUserCoords,
     getDeliveryRadiusKm,
     getActiveBrands,

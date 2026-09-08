@@ -76,9 +76,11 @@ module.exports = () => {
         notification: {
           // App (MainApplication.kt) is channel ko HIGH importance se banata hai:
           // heads-up + sound. Galat id par Android silent fallback channel use karta hai.
-          channelId: "order_updates",
+          channelId: "order_updates_v2",
           icon: "ic_notification",
           color: "#FF6051",
+          // Sound: channel ke saath-saath payload me bhi explicit
+          sound: "default",
           defaultSound: true,
           defaultVibrateTimings: true,
           priority: "high",

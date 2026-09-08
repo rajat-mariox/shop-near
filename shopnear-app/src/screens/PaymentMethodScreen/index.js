@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,13 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
+  Alert,
 } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import styles from './styles';
+import AddCardModal from '../../components/AddCardModal';
+import { getSavedCards, removeSavedCard } from '../../utils/savedCards';
 import { AppImages } from '../../constants/app.image';
 import { Colors } from '../../themes/Colors';
 import {
@@ -61,13 +65,53 @@ export default function PaymentMethodScreen({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   // 'cod' ya online variants ('paytm'/'phonepe'/'amazonpay'/'freecharge'/'card')
   // — cod ke alawa sab Razorpay checkout kholte hain
+  // Saved card chunne par 'card:<id>' (device par masked details save hoti hain)
   const [selected, setSelected] = useState('cod');
+  const [savedCards, setSavedCards] = useState([]);
+  const [addCardVisible, setAddCardVisible] = useState(false);
   const total = route?.params?.total || 0;
   const address = route?.params?.address || null;
 
-  // Razorpay checkout ko chune hue option par khol do (card form / wallet)
+  useEffect(() => {
+    getSavedCards().then(setSavedCards);
+  }, []);
+
+  const isCardMethod = (method) => method === 'card' || String(method).startsWith('card:');
+  const savedCardFor = (method) =>
+    String(method).startsWith('card:')
+      ? savedCards.find((c) => `card:${c.id}` === method)
+      : null;
+
+  // Naya card save hote hi list me aa jaata hai aur select ho jaata hai —
+  // user seedha Continue dabake Razorpay ke card page par jaa sakta hai
+  const handleCardSaved = (card, cards) => {
+    setSavedCards(cards);
+    setSelected(`card:${card.id}`);
+  };
+
+  const handleRemoveCard = (card) => {
+    Alert.alert('Remove card', `Remove ${card.brand} card ending ${card.last4}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          const next = await removeSavedCard(card.id);
+          setSavedCards(next);
+          if (selected === `card:${card.id}`) setSelected('card');
+        },
+      },
+    ]);
+  };
+
+  // Razorpay checkout ko chune hue option par khol do (card form / wallet).
+  // Saved card ke liye sirf naam prefill hota hai — number/CVV store nahi
+  // hote, wo user Razorpay ke secure page par bharta hai.
   const razorpayPrefillFor = (method) => {
-    if (method === 'card') return { method: 'card' };
+    if (isCardMethod(method)) {
+      const saved = savedCardFor(method);
+      return saved ? { method: 'card', name: saved.name } : { method: 'card' };
+    }
     if (['paytm', 'phonepe', 'amazonpay', 'freecharge'].includes(method)) {
       return { method: 'wallet', wallet: method };
     }
@@ -130,7 +174,6 @@ export default function PaymentMethodScreen({ navigation, route }) {
     }
   };
 
-  // method param: "+ Add Card" seedha card flow shuru karta hai (state update ka wait nahi)
   const handleContinue = async (method = selected) => {
     if (loading) return;
     if (!address || !address._id) {
@@ -214,28 +257,67 @@ export default function PaymentMethodScreen({ navigation, route }) {
           <Text style={[styles.sectionTitle, styles.sectionTitleInline]}>
             Credit / Debit Cards
           </Text>
-          {/* Add Card: card select + turant Razorpay ka secure card form */}
+          {/* Add Card: form modal kholta hai (number/expiry/CVV/name) — payment
+              nahi, sirf card save; payment Continue par Razorpay se hoti hai */}
           <TouchableOpacity
-            onPress={() => {
-              setSelected('card');
-              handleContinue('card');
-            }}>
+            onPress={() => setAddCardVisible(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={styles.addCard}>+ Add Card</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Saved cards (device par masked details) */}
+        {savedCards.map((card) => {
+          const key = `card:${card.id}`;
+          return (
+            <TouchableOpacity
+              key={key}
+              style={[styles.cardBox, selected === key && styles.boxSelected]}
+              activeOpacity={0.8}
+              onPress={() => setSelected(key)}>
+              <Image source={AppImages.card} style={styles.cardLogo} />
+              <View style={styles.boxInfo}>
+                <View style={styles.cardTitleRow}>
+                  <Text style={styles.cardType}>
+                    {card.brand} {'••••'} {card.last4}
+                  </Text>
+                  <View style={styles.cardExpiryChip}>
+                    <Text style={styles.cardExpiryText}>{card.expiry}</Text>
+                  </View>
+                </View>
+                <Text style={styles.cardHolder}>{card.name}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleRemoveCard(card)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.cardDeleteBtn}>
+                <MaterialIcons name="delete-outline" size={px(20)} color="#B0B0B0" />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          );
+        })}
+
         <TouchableOpacity
           style={[styles.cardBox, selected === 'card' && styles.boxSelected]}
           activeOpacity={0.8}
           onPress={() => setSelected('card')}>
           <Image source={AppImages.card} style={styles.cardLogo} />
           <View style={styles.boxInfo}>
-            <Text style={styles.cardType}>Credit / Debit Card</Text>
+            <Text style={styles.cardType}>
+              {savedCards.length ? 'Other Credit / Debit Card' : 'Credit / Debit Card'}
+            </Text>
             <Text style={styles.cardHolder}>
               Card details agle step par secure Razorpay page me bharein
             </Text>
           </View>
         </TouchableOpacity>
       </ScrollView>
+
+      <AddCardModal
+        visible={addCardVisible}
+        onClose={() => setAddCardVisible(false)}
+        onSaved={handleCardSaved}
+      />
 
       {/* Continue */}
       <TouchableOpacity

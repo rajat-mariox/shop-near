@@ -532,6 +532,8 @@ const Dashboard = (props) => {
                   navigation.navigate('SellerProductsScreen', {
                     brandId: brand._id,
                     brandName: brand.name,
+                    // Sirf nearby shops ke brand products — Home wali live location
+                    coords: liveLocation ? { lat: liveLocation.lat, lng: liveLocation.lng } : null,
                   })
                 }>
                 <View style={[styles.brandCard, { borderColor: color }]}>

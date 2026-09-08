@@ -34,9 +34,15 @@ class MainApplication : Application(), ReactApplication {
   // FCM background notifications ke liye HIGH importance channel. Bina iske Android
   // fallback "Miscellaneous" channel use karta hai: na heads-up banner, na sound.
   // Backend isi channel id par bhejta hai (android.notification.channelId).
+  // Channel id versioned hai (_v2): Android existing channel ki sound/importance
+  // app se badalne nahi deta, isliye purane build me bana silent channel delete
+  // karke naya sound wala channel banate hain.
   private fun createNotificationChannels() {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
     val manager = getSystemService(NotificationManager::class.java) ?: return
+    LEGACY_CHANNEL_IDS.forEach { id ->
+      if (manager.getNotificationChannel(id) != null) manager.deleteNotificationChannel(id)
+    }
     val channel =
       NotificationChannel(ORDER_CHANNEL_ID, "Order Updates", NotificationManager.IMPORTANCE_HIGH)
         .apply {
@@ -57,6 +63,8 @@ class MainApplication : Application(), ReactApplication {
   }
 
   companion object {
-    const val ORDER_CHANNEL_ID = "order_updates"
+    const val ORDER_CHANNEL_ID = "order_updates_v2"
+    // Purane channel ids — install par delete hote hain (silent ban chuke the)
+    val LEGACY_CHANNEL_IDS = listOf("order_updates")
   }
 }

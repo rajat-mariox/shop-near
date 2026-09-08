@@ -198,6 +198,28 @@ export default StyleSheet.create({
     color: '#888',
     marginTop: px(2),
   },
+  /* Saved card row: "Visa •••• 1234" + expiry chip + delete */
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: px(8),
+  },
+  cardExpiryChip: {
+    backgroundColor: '#F5F5F7',
+    borderRadius: px(6),
+    paddingHorizontal: px(6),
+    paddingVertical: px(2),
+  },
+  cardExpiryText: {
+    ...F,
+    fontSize: fontScale(10.5),
+    fontWeight: '600',
+    color: '#6E6E73',
+  },
+  cardDeleteBtn: {
+    marginLeft: px(8),
+    padding: px(2),
+  },
   /* ---------- CONTINUE ---------- */
   continueBtn: {
     backgroundColor: Colors.theme1,

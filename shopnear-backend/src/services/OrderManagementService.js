@@ -1,5 +1,7 @@
 const UserOrders = require("../models/UserOrders");
 const PanelNotificationService = require("./PanelNotificationService");
+// Customer app ko FCM push (order placed / payment success / cancelled)
+const NotificationService = require("./NotificationService");
 const mongoose = require("mongoose");
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
@@ -162,6 +164,9 @@ module.exports = () => {
         await cart.save();
         // Seller/admin panel bell: naya COD order
         PanelNotificationService().orderPlaced(order);
+        // Customer app: "Order Placed" push (pehle sirf panel ko jaata tha,
+        // customer ko order place hone par koi notification nahi milti thi)
+        NotificationService().sendOrderStatusNotification(order, "pending");
       }
 
       req.rData = {
@@ -285,6 +290,8 @@ module.exports = () => {
 
       // Seller/admin panel bell: paid order aaya
       PanelNotificationService().orderPlaced(order);
+      // Customer app: "Payment Successful" push
+      NotificationService().sendOrderStatusNotification(order, "payment_success");
 
       // Stock yahan nahi kat-ta — order create hote waqt hi atomically
       // reserve ho chuka hota hai (createOrderFromCart)
@@ -559,6 +566,12 @@ module.exports = () => {
       await order.save();
       // Seller/admin panel bell: customer ne order cancel kiya
       PanelNotificationService().orderCancelled(order, "customer");
+      // Customer app: "Order Cancelled" push — sirf asli placed order par
+      // (COD ya paid). Razorpay checkout cancel/fail par app pending unpaid
+      // order khud cancel karti hai, uspe push bhejna noise hoga.
+      if (order.paymentMode !== "online" || wasPaid) {
+        NotificationService().sendOrderStatusNotification(order, "cancelled");
+      }
 
       req.rData = {
         orderId: order._id,

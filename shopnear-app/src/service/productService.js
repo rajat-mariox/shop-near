@@ -34,16 +34,23 @@ export const fetchProductsByCategory = async (sellerId, categoryId) => {
 };
 
 /**
- * Fetch all products of a brand (home "Popular Brand" tile)
+ * Fetch products of a brand (home "Popular Brand" tile) — sirf nearby shops
+ * (admin radius) ke. coords = live GPS { lat, lng }; na ho to backend saved
+ * address use karta hai, wo bhi na ho to products [] + nearby.hasLocation=false.
  * @param {string} brandId - Brand ID
+ * @param {{lat:number,lng:number}|null} coords
  */
-export const fetchProductsByBrand = async (brandId) => {
+export const fetchProductsByBrand = async (brandId, coords = null) => {
   try {
     const token = await getTokenStorage();
     if (!token) {
       throw new Error('No auth token found');
     }
-    const url = `${API_BASE_URL}/user/brands/${brandId}/products`;
+    const query =
+      coords && coords.lat != null && coords.lng != null
+        ? `?lat=${coords.lat}&lng=${coords.lng}`
+        : '';
+    const url = `${API_BASE_URL}/user/brands/${brandId}/products${query}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
