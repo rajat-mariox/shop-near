@@ -20,6 +20,8 @@ import BannerList from "./components/Banners/BannerList";
 import BrandList from "./components/Brands/BrandList";
 import DeliverySettings from "./components/DeliverySettings/DeliverySettings";
 import Login from "./components/Auth/Login";
+import PrivacyPolicy from "./components/Public/PrivacyPolicy";
+import DeleteAccount from "./components/Public/DeleteAccount";
 import useAuthStore from "./store/authStore";
 
 function ProtectedLayout() {
@@ -76,6 +78,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        {/* Public pages (bina login) - Play Store listing URLs */}
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/delete-account" element={<DeleteAccount />} />
         <Route path="/*" element={<ProtectedLayout />} />
       </Routes>
     </BrowserRouter>

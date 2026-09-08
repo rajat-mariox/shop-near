@@ -1,0 +1,181 @@
+/* Public pages (bina login): /privacy-policy, /delete-account
+   Play Store listing ke liye - admin layout (sidebar/header) ke bahar render hote hain */
+.pub-body {
+  min-height: 100vh;
+  background: #f6f6f8;
+  color: #1c1c1e;
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+}
+.pub-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+.pub-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.pub-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #ee3e35;
+  color: #fff;
+  font-weight: 700;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.pub-header h1 {
+  font-size: 24px;
+  margin: 0;
+  line-height: 1.3;
+}
+.pub-sub {
+  color: #6b6b70;
+  margin: 2px 0 0;
+  font-size: 14px;
+}
+.pub-card {
+  background: #fff;
+  border: 1px solid #e6e6ea;
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 16px;
+}
+.pub-card h2 {
+  font-size: 17px;
+  margin: 20px 0 8px;
+}
+.pub-card h2:first-child {
+  margin-top: 0;
+}
+.pub-card p,
+.pub-card li {
+  font-size: 15px;
+  margin: 8px 0;
+}
+.pub-card ol,
+.pub-card ul {
+  padding-left: 20px;
+  margin: 6px 0;
+}
+/* App.css globally removes list markers; restore them here */
+.pub-card ol {
+  list-style: decimal;
+}
+.pub-card ul {
+  list-style: disc;
+}
+.pub-card a,
+.pub-footer a {
+  color: #ee3e35;
+}
+.pub-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.pub-table td {
+  padding: 6px 0;
+  border-bottom: 1px solid #e6e6ea;
+  vertical-align: top;
+}
+.pub-table td:first-child {
+  font-weight: 600;
+  width: 40%;
+  padding-right: 10px;
+}
+.pub-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 14px 0 6px;
+}
+.pub-input,
+.pub-select,
+.pub-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 11px 12px;
+  border: 1px solid #cfcfd6;
+  border-radius: 10px;
+  background: #fff;
+  outline: none;
+}
+.pub-input:focus,
+.pub-select:focus,
+.pub-textarea:focus {
+  border-color: #ee3e35;
+}
+.pub-textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+.pub-row {
+  display: flex;
+  gap: 8px;
+}
+.pub-row .pub-cc {
+  width: 90px;
+  flex: none;
+}
+.pub-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px;
+  font: inherit;
+  font-weight: 600;
+  border: 0;
+  border-radius: 10px;
+  background: #ee3e35;
+  color: #fff;
+  cursor: pointer;
+}
+.pub-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.pub-btn.ghost {
+  background: #fff;
+  color: #1c1c1e;
+  border: 1px solid #cfcfd6;
+  margin-top: 8px;
+}
+.pub-msg {
+  margin-top: 12px;
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+.pub-msg.err {
+  background: #fdecec;
+  color: #9b1c14;
+}
+.pub-msg.ok {
+  background: #e9f8ee;
+  color: #176b34;
+}
+.pub-warn {
+  background: #fff7e6;
+  border: 1px solid #f4d9a3;
+  color: #7a4b00;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-top: 14px;
+}
+.pub-footer {
+  color: #6b6b70;
+  font-size: 13px;
+  margin-top: 24px;
+}
+.pub-cms p {
+  white-space: pre-wrap;
+}
