@@ -93,8 +93,8 @@ android {
         applicationId "aaspas.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.0.1"
     }
     // Release upload keystore: android/keystore.properties se aata hai (gitignored).
     // File na ho to debug keystore se sign hota hai (Play Store usse reject karta hai).
