@@ -14,6 +14,7 @@ import { AppImages } from '../../constants/app.image';
 import { Colors } from '../../themes/Colors';
 import { fetchProductsByCategory, fetchProductsByBrand } from '../../service/productService';
 import { imageSource } from '../../utils/media';
+import { getCurrentLocation } from '../../utils/location';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
 import ScreenHeader from '../../components/ScreenHeader';
 
@@ -26,11 +27,17 @@ const SellerProductsScreen = ({ route, navigation }) => {
   const brandId = route?.params?.brandId;
   const shopName = route?.params?.shopName || route?.params?.brandName || 'Shop';
 
+  // Brand mode: sirf nearby shops ke products. Home se aaye coords use hote
+  // hain; na mile to yahin GPS try karte hain (fail par backend saved address)
+  const paramCoords = route?.params?.coords || null;
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Backend se: { hasLocation, radiusKm } - empty state message ke liye
+  const [nearbyInfo, setNearbyInfo] = useState(null);
 
-  const loadProducts = useCallback(() => {
+  const loadProducts = useCallback(async () => {
     if (!sellerId && !brandId) {
       setError('Shop ki id nahi mili');
       setLoading(false);
@@ -38,11 +45,18 @@ const SellerProductsScreen = ({ route, navigation }) => {
     }
     setLoading(true);
     setError(null);
-    const request = brandId ? fetchProductsByBrand(brandId) : fetchProductsByCategory(sellerId);
+    let request;
+    if (brandId) {
+      const coords = paramCoords || (await getCurrentLocation().catch(() => null));
+      request = fetchProductsByBrand(brandId, coords);
+    } else {
+      request = fetchProductsByCategory(sellerId);
+    }
     request
       .then(res => {
         if (res.success && Array.isArray(res.data?.products)) {
           setProducts(res.data.products);
+          setNearbyInfo(res.data.nearby || null);
         } else {
           setProducts([]);
           setError(res.message || 'Products load nahi ho paaye');
@@ -53,7 +67,7 @@ const SellerProductsScreen = ({ route, navigation }) => {
         setError('Network error');
       })
       .finally(() => setLoading(false));
-  }, [sellerId, brandId]);
+  }, [sellerId, brandId, paramCoords]);
 
   useEffect(() => {
     loadProducts();
@@ -109,11 +123,26 @@ const SellerProductsScreen = ({ route, navigation }) => {
       );
     }
     if (products.length === 0) {
+      // Brand mode: location na ho to enable-location message, warna
+      // "aas-paas ki shops me ye brand nahi" (radius admin-set)
+      let message = 'Is shop me abhi koi product nahi hai';
+      if (brandId) {
+        if (nearbyInfo && nearbyInfo.hasLocation === false) {
+          message = 'Location on karein — sirf aapke aas-paas ki shops ke products dikhte hain';
+        } else {
+          message = nearbyInfo?.radiusKm
+            ? `Aapke ${nearbyInfo.radiusKm} km ke andar kisi shop me is brand ka product nahi hai`
+            : 'Aapke aas-paas ki shops me is brand ka product nahi hai';
+        }
+      }
       return (
         <View style={styles.centerBox}>
-          <Text style={styles.messageText}>
-            {brandId ? 'Is brand ka abhi koi product nahi hai' : 'Is shop me abhi koi product nahi hai'}
-          </Text>
+          <Text style={styles.messageText}>{message}</Text>
+          {brandId ? (
+            <TouchableOpacity style={styles.retryBtn} onPress={loadProducts}>
+              <Text style={styles.retryText}>Refresh</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       );
     }

@@ -7,8 +7,10 @@ import {
   markSellerNotificationRead,
   markAllSellerNotificationsRead,
 } from "../../api/sellerApi";
+import { installAudioUnlock, playNotificationSound } from "../../utils/notificationSound";
 
-const POLL_MS = 30000;
+// Sound alert ke liye 30s bahut slow tha — unread count query halki hai
+const POLL_MS = 15000;
 
 const timeAgo = (iso) => {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -37,12 +39,24 @@ const NotificationBell = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const wrapRef = useRef(null);
+  // Pichhla known unread — badhne par sound. null = pehla load (uspe sound nahi,
+  // warna page refresh par purani unread notifications bhi baj jaati)
+  const lastUnreadRef = useRef(null);
+
+  const applyUnread = (count) => {
+    const next = count || 0;
+    if (lastUnreadRef.current !== null && next > lastUnreadRef.current) {
+      playNotificationSound();
+    }
+    lastUnreadRef.current = next;
+    setUnread(next);
+  };
 
   const refreshUnread = async () => {
     try {
       const res = await getSellerUnreadCount();
       const d = res.data?.data || res.data;
-      setUnread(d?.unread || 0);
+      applyUnread(d?.unread);
     } catch {
       /* token na ho / network - chup */
     }
@@ -54,7 +68,7 @@ const NotificationBell = () => {
       const res = await getSellerNotifications({ page: 1, limit: 20 });
       const d = res.data?.data || res.data;
       setItems(d?.items || []);
-      setUnread(d?.unread || 0);
+      applyUnread(d?.unread);
     } catch {
       setItems([]);
     } finally {
@@ -63,9 +77,16 @@ const NotificationBell = () => {
   };
 
   useEffect(() => {
+    // Browser autoplay: pehle click/keydown par audio unlock
+    const unlock = installAudioUnlock();
     refreshUnread();
     const t = setInterval(refreshUnread, POLL_MS);
-    return () => clearInterval(t);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("click", unlock);
+      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("touchstart", unlock);
+    };
   }, []);
 
   // Bahar click par band
@@ -88,6 +109,7 @@ const NotificationBell = () => {
     if (!n.isRead) {
       setItems((prev) => prev.map((x) => (x._id === n._id ? { ...x, isRead: true } : x)));
       setUnread((u) => Math.max(0, u - 1));
+      lastUnreadRef.current = Math.max(0, (lastUnreadRef.current || 0) - 1);
       markSellerNotificationRead(n._id).catch(() => {});
     }
     setOpen(false);
@@ -98,6 +120,7 @@ const NotificationBell = () => {
   const readAll = async () => {
     setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
     setUnread(0);
+    lastUnreadRef.current = 0;
     markAllSellerNotificationsRead().catch(() => {});
   };
 

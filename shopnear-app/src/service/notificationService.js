@@ -24,8 +24,10 @@ const getNotifee = () => {
   }
 };
 
-// Backend (android.notification.channelId) aur MainApplication.kt isi id par hain
-export const ORDER_CHANNEL_ID = 'order_updates';
+// Backend (android.notification.channelId) aur MainApplication.kt isi id par hain.
+// _v2: purana 'order_updates' channel kuch devices par bina sound ke ban gaya tha,
+// aur Android existing channel ki sound badalne nahi deta — isliye naya id.
+export const ORDER_CHANNEL_ID = 'order_updates_v2';
 
 let fcm = null;
 const getFcm = () => {
@@ -150,6 +152,8 @@ export const displaySystemNotification = async (remoteMessage) => {
       smallIcon: 'ic_notification',
       color: '#FF6051',
       importance: AndroidImportance.HIGH,
+      // Foreground me bhi system notification sound baje
+      sound: 'default',
       // Tap par app khule (background/killed dono me) aur press event mile
       pressAction: { id: 'default', launchActivity: 'default' },
       // Lambi body (delivery OTP wali) poori dikhe

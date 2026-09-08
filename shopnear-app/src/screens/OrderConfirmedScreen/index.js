@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   Linking,
   ScrollView,
   Share,
@@ -23,6 +24,8 @@ import ScreenHeader from '../../components/ScreenHeader';
 
 const THEME_COLOR = Colors.theme1;
 const RED = '#EE3E35';
+// Order Confirmed screen itne second dikh kar khud Home par chali jaati hai
+const AUTO_HOME_SECONDS = 3;
 // OEM system fonts par text-cut se bachne ke liye
 const F = { fontFamily: 'sans-serif' };
 
@@ -83,8 +86,54 @@ const OrderConfirmedScreen = ({ navigation, route }) => {
 
   useEffect(loadOrder, [orderId]);
 
-  // Order complete — back se payment flow par wapas nahi, seedha Home
-  const goHome = () => navigation.navigate('Home');
+  // Order complete — back se payment flow par wapas nahi, seedha Home.
+  // reset: Cart/Payment screens stack se hat jaati hain, warna Home par
+  // back dabane se wapas payment page khul jaata tha.
+  const goHome = () => navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+
+  // Order successful dikhne ke baad 3 sec ruk kar khud Home par chale jao.
+  // User Track/Share tap kare ya screen se hat jaaye to countdown cancel.
+  const [countdown, setCountdown] = useState(null);
+  const timerRef = useRef(null);
+  const cancelAutoHome = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setCountdown(null);
+  };
+  useEffect(() => {
+    if (!order) return undefined;
+    setCountdown(AUTO_HOME_SECONDS);
+    timerRef.current = setInterval(() => {
+      setCountdown((n) => (n === null ? null : Math.max(0, n - 1)));
+    }, 1000);
+    const unsubBlur = navigation.addListener('blur', cancelAutoHome);
+    return () => {
+      cancelAutoHome();
+      unsubBlur();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order]);
+
+  // Countdown 0 par pahuncha — Home (navigation side-effect updater se bahar)
+  useEffect(() => {
+    if (countdown === 0) {
+      cancelAutoHome();
+      goHome();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdown]);
+
+  // Hardware back bhi Home par (payment screen par nahi)
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      goHome();
+      return true;
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Header ka phone icon — pehle seller ki shop ko call
   const sellerMobile = order?.products?.find((p) => p.seller?.mobile)?.seller.mobile;
@@ -93,16 +142,19 @@ const OrderConfirmedScreen = ({ navigation, route }) => {
       showToast('Shop ka number available nahi hai', 'error');
       return;
     }
+    cancelAutoHome();
     Linking.openURL(`tel:${sellerMobile}`).catch(() => {});
   };
 
   const handleWhatsapp = () => {
+    cancelAutoHome();
     Linking.openURL(`whatsapp://send?text=${encodeURIComponent(SHARE_MESSAGE)}`).catch(() =>
       // WhatsApp installed nahi to system share sheet
       Share.share({ message: SHARE_MESSAGE }).catch(() => {})
     );
   };
   const handleFacebookShare = () => {
+    cancelAutoHome();
     Share.share({ message: SHARE_MESSAGE }).catch(() => {});
   };
 
@@ -151,6 +203,11 @@ const OrderConfirmedScreen = ({ navigation, route }) => {
             <AntDesign name="checkcircleo" size={moderateScale(56)} color="#34C759" />
             <Text style={styles.successText}>Your Order is Successful</Text>
             <Text style={styles.orderIdText}>Order Id: #{order.orderId || order._id}</Text>
+            {countdown !== null ? (
+              <Text style={styles.redirectText}>
+                Redirecting to Home in {countdown}s...
+              </Text>
+            ) : null}
           </View>
 
           {/* Order Information */}
@@ -160,9 +217,10 @@ const OrderConfirmedScreen = ({ navigation, route }) => {
               <TouchableOpacity
                 style={styles.trackBtn}
                 activeOpacity={0.85}
-                onPress={() =>
-                  navigation.navigate('OrderTrackingScreen', { orderId: order._id })
-                }>
+                onPress={() => {
+                  cancelAutoHome();
+                  navigation.navigate('OrderTrackingScreen', { orderId: order._id });
+                }}>
                 <Text style={styles.trackBtnText}>Track</Text>
               </TouchableOpacity>
             </View>
@@ -304,6 +362,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: THEME_COLOR,
     marginTop: verticalScale(5),
+  },
+  redirectText: {
+    ...F,
+    fontSize: fontScale(11.5),
+    color: '#8A8A8E',
+    marginTop: verticalScale(8),
   },
   cardHeaderRow: {
     flexDirection: 'row',
