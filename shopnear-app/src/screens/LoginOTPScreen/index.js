@@ -290,8 +290,17 @@ const LoginScreen = (props) => {
 
       <Text style={styles.termsText}>
         By continuing you agree to our{' '}
-        <Text style={styles.linkText}>Terms of Services</Text> and{' '}
-        <Text style={styles.linkText}>Privacy Policy</Text>
+        <Text
+          style={styles.linkText}
+          onPress={() => navigation.navigate('CmsScreen', { type: 'terms' })}>
+          Terms of Services
+        </Text>{' '}
+        and{' '}
+        <Text
+          style={styles.linkText}
+          onPress={() => navigation.navigate('CmsScreen', { type: 'privacy' })}>
+          Privacy Policy
+        </Text>
       </Text>
 
       {keypadVisible ? (

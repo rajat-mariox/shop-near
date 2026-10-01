@@ -8,10 +8,12 @@ router.use("/admin", require("./admin"));
 router.use("/coupon", require("./coupon"));
 router.use("/offers", require("./offers"));
 
-// Public (no auth) CMS content - admin panel ke public /privacy-policy page ke liye
+// Public (no auth) CMS content - mobile app (CmsScreen) aur admin panel ke
+// public /privacy-policy page ke liye. type: terms | privacy | about | shipping |
+// cancellation | refund | contact
 router.get(
-  "/cms/privacy",
-  require("../controllers/PublicPagesController")().privacyPolicyJson
+  "/cms/:type",
+  require("../controllers/PublicPagesController")().cmsJson
 );
 
 module.exports = router;

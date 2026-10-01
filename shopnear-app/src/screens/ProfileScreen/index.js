@@ -59,6 +59,11 @@ const OTHER_MENU = [
     icon: (color) => <Feather name="mail" size={moderateScale(19)} color={color} />,
   },
   {
+    key: 'policies',
+    label: 'Policies',
+    icon: (color) => <Feather name="file-text" size={moderateScale(19)} color={color} />,
+  },
+  {
     key: 'about',
     label: 'About us',
     icon: (color) => <Feather name="info" size={moderateScale(19)} color={color} />,
@@ -109,7 +114,9 @@ const ProfileScreen = ({ navigation }) => {
     else if (key === 'profile') navigation.navigate('MyProfile');
     else if (key === 'setting') navigation.navigate('ProfileSetting');
     else if (key === 'support') navigation.navigate('FeedbackScreen');
-    // 'about' ke liye abhi koi screen nahi hai
+    // Policies / About us ka content admin panel > CMS se aata hai
+    else if (key === 'policies') navigation.navigate('PoliciesScreen');
+    else if (key === 'about') navigation.navigate('CmsScreen', { type: 'about' });
   };
 
   const renderItem = (item, isActive) => {
