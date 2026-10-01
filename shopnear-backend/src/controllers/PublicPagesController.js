@@ -66,25 +66,58 @@ module.exports = () => {
     res.type("html").send(template);
   };
 
-  // JSON version - admin panel (admin.aaspass.net/privacy-policy) isse content leta hai
-  const privacyPolicyJson = async (req, res) => {
-    let content = "";
-    let updatedAt = null;
+  // Admin CMS tab -> Settings field + title (app aur public pages dono yahi use karte hain)
+  const CMS_PAGES = {
+    terms: { field: "termsAndConditions", title: "Terms of Service" },
+    privacy: { field: "privacyPolicy", title: "Privacy Policy" },
+    about: { field: "aboutUs", title: "About Us" },
+    shipping: { field: "shippingPolicy", title: "Shipping Policy" },
+    cancellation: { field: "cancellationPolicy", title: "Cancellation Policy" },
+    refund: { field: "refundPolicy", title: "Refund Policy" },
+    contact: { field: "contactUs", title: "Contact Us" },
+  };
+
+  // Public JSON (bina login): GET /v1/api/cms/:type
+  // Mobile app ka CmsScreen aur admin.aaspass.net/privacy-policy isse content lete hain.
+  // Content khali ho to content "" aata hai - client apna empty state dikhata hai.
+  const cmsJson = async (req, res) => {
+    const type = String(req.params.type || "").toLowerCase();
+    const page = CMS_PAGES[type];
+    if (!page) {
+      return res
+        .status(404)
+        .send({ code: 0, message: "cms page not found", data: {} });
+    }
+
+    const data = { type, title: page.title, content: "", updatedAt: null };
     try {
       const settings = await SettingsService().fetchByQuery({});
-      if (settings && settings.privacyPolicy && settings.privacyPolicy.trim()) {
-        content = settings.privacyPolicy;
-        updatedAt = settings.updatedAt;
+      if (settings) {
+        if (type === "contact") {
+          const c = settings.contactUs || {};
+          data.contact = {
+            email: c.email || "",
+            phone: c.phone || "",
+            address: c.address || "",
+          };
+          if (c.email || c.phone || c.address) data.updatedAt = settings.updatedAt;
+        } else if (String(settings[page.field] || "").trim()) {
+          data.content = settings[page.field];
+          data.updatedAt = settings.updatedAt;
+        }
       }
     } catch (err) {
-      console.error("PublicPagesController => privacyPolicyJson failed", err.message);
+      console.error("PublicPagesController => cmsJson failed", err.message);
     }
-    res.send({ code: 1, message: "success", data: { content, updatedAt } });
+    if (type === "contact" && !data.contact) {
+      data.contact = { email: "", phone: "", address: "" };
+    }
+    res.send({ code: 1, message: "success", data });
   };
 
   const deleteAccount = (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, "delete-account.html"));
   };
 
-  return { privacyPolicy, privacyPolicyJson, deleteAccount };
+  return { privacyPolicy, cmsJson, deleteAccount };
 };
