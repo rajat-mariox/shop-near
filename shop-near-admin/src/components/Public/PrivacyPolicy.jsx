@@ -23,9 +23,9 @@ const DefaultPolicy = () => (
   <>
     <h2>1. Who we are</h2>
     <p>
-      Aaspass is a hyperlocal shopping app that lets you discover nearby shops
+      AasPass is a hyperlocal shopping app that lets you discover nearby shops
       and order products for delivery. This policy explains what information we
-      collect when you use the Aaspass Android app and how we use and protect
+      collect when you use the AasPass Android app and how we use and protect
       it.
     </p>
 
@@ -81,7 +81,7 @@ const DefaultPolicy = () => (
     <h2>4. Who we share it with</h2>
     <ul>
       <li>
-        <strong>Sellers</strong> on Aaspass receive the details needed to fulfil
+        <strong>Sellers</strong> on AasPass receive the details needed to fulfil
         your order: your name, delivery address, mobile number and order items.
       </li>
       <li>
@@ -110,7 +110,7 @@ const DefaultPolicy = () => (
 
     <h2>6. Deleting your account and data</h2>
     <p>
-      You can delete your Aaspass account at any time from{" "}
+      You can delete your AasPass account at any time from{" "}
       <strong>My Profile &gt; Delete account</strong> inside the app, or without
       the app at <Link to="/delete-account">this page</Link>. Your account is
       scheduled for deletion immediately with a 7-day grace period during which
@@ -128,7 +128,7 @@ const DefaultPolicy = () => (
 
     <h2>8. Children</h2>
     <p>
-      Aaspass is not directed at children under 18, and we do not knowingly
+      AasPass is not directed at children under 18, and we do not knowingly
       collect personal information from them.
     </p>
 
@@ -142,7 +142,7 @@ const DefaultPolicy = () => (
     <h2>10. Contact us</h2>
     <p>
       For any questions about this policy or your data, contact us through the{" "}
-      <strong>Help &amp; Support</strong> section in the Aaspass app.
+      <strong>Help &amp; Support</strong> section in the AasPass app.
     </p>
   </>
 );
@@ -153,7 +153,7 @@ const PrivacyPolicy = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = "Aaspass Privacy Policy";
+    document.title = "AasPass Privacy Policy";
     getPublicPrivacyPolicy()
       .then((res) => {
         const d = res.data?.data || {};
@@ -169,7 +169,7 @@ const PrivacyPolicy = () => {
   return (
     <PublicLayout
       title="Privacy Policy"
-      subtitle={`Aaspass (aaspas.app) · Last updated: ${formatDate(updatedAt)}`}
+      subtitle={`AasPass (aaspas.app) · Last updated: ${formatDate(updatedAt)}`}
       footer={
         <>
           Want to delete your account? Go to{" "}

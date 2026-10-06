@@ -16,7 +16,7 @@ const SLIDES = [
     key: '2',
     image: AppImages.landing2,
     title: 'One App\nfor Every Local Need',
-    subtitle: 'From fashion to essentials — ShopNear connects you to your neighborhood’s best stores in seconds.',
+    subtitle: 'From fashion to essentials — AasPass connects you to your neighborhood’s best stores in seconds.',
   },
   {
     key: '3',

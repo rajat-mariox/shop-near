@@ -40,7 +40,7 @@ const AddAddressScreen = ({ visible, onClose, navigation }) => {
                 PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
                 {
                     title: 'Location Permission',
-                    message: 'ShopNear needs your location to fill the delivery address',
+                    message: 'AasPass needs your location to fill the delivery address',
                     buttonPositive: 'OK',
                 },
             );

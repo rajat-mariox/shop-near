@@ -42,7 +42,7 @@ export default function Login() {
     <div style={styles.wrapper}>
       <form style={styles.card} onSubmit={handleSubmit}>
         <div style={styles.logo}>
-          <img src="/newLogo.jpeg" alt="ShopNear" style={styles.logoImage} />
+          <img src="/newLogo.jpeg" alt="AasPass" style={styles.logoImage} />
         </div>
         <h2 style={styles.title}>Admin Login</h2>
         <p style={styles.subtitle}>Sign in to your admin panel</p>

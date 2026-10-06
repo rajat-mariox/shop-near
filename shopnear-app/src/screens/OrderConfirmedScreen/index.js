@@ -30,7 +30,7 @@ const AUTO_HOME_SECONDS = 3;
 const F = { fontFamily: 'sans-serif' };
 
 const SHARE_MESSAGE =
-  'Hey! Maine abhi ShopNear se order kiya — apne aas-paas ki shops se ghar baithe shopping karo. Try karo!';
+  'Hey! Maine abhi AasPass se order kiya — apne aas-paas ki shops se ghar baithe shopping karo. Try karo!';
 
 // "November 5, 2020 | 12:20p" — figma format
 const MONTHS = [
