@@ -13,7 +13,7 @@ const requestPermission = async () => {
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
       {
         title: 'Location Permission',
-        message: 'ShopNear needs your location to show shops near you',
+        message: 'AasPass needs your location to show shops near you',
         buttonPositive: 'OK',
       },
     );

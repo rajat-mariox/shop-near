@@ -135,7 +135,7 @@ const Sidebar = ({ onNavigate }) => {
         padding: "32px 16px",
       }}
     >
-      {/* Top: Company card + close button (ShopNear logo ki jagah) */}
+      {/* Top: Company card + close button (AasPass logo ki jagah) */}
       <div
         style={{
           display: "flex",
@@ -179,7 +179,7 @@ const Sidebar = ({ onNavigate }) => {
                 textOverflow: "ellipsis",
               }}
             >
-              {seller?.shopName || "ShopNear"}
+              {seller?.shopName || "AasPass"}
             </div>
           </div>
         </div>

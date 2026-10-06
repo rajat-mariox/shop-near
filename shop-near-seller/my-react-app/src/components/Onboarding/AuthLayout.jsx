@@ -1,5 +1,5 @@
 import "./onboarding.css";
-import logoSprite from "../../assets/onboarding/logo-sprite.png";
+import aasPassLogo from "../../assets/Images/aaspass_logo.png";
 import heroBg from "../../assets/onboarding/hero-bg.png";
 import rocket from "../../assets/onboarding/rocket.png";
 import statCustomer from "../../assets/onboarding/stat-customer.png";
@@ -10,16 +10,9 @@ import brandChanel from "../../assets/onboarding/brand-chanel.svg";
 import brandPuma from "../../assets/onboarding/brand-puma.png";
 import brandSprite from "../../assets/onboarding/brand-sprite.png";
 
-export function ShopNearLogo() {
+export function AasPassLogo() {
   return (
-    <div className="sn-logo">
-      <div className="sn-logo-pin">
-        <img src={logoSprite} alt="" />
-      </div>
-      <div className="sn-logo-text">
-        <img src={logoSprite} alt="ShopNear" />
-      </div>
-    </div>
+    <img className="sn-logo" src={aasPassLogo} alt="AasPass" />
   );
 }
 
@@ -80,7 +73,7 @@ export default function AuthLayout({ children, actions }) {
     <div className="ob-page">
       <div className="ob-left">
         <div className="ob-left-logo">
-          <ShopNearLogo />
+          <AasPassLogo />
         </div>
         <div className="ob-left-center">{children}</div>
       </div>
@@ -94,7 +87,7 @@ export default function AuthLayout({ children, actions }) {
           </div>
           <div className="ob-hero-heading">
             <div className="line1">Grow your Business Faster By</div>
-            <div className="line2">Selling through SHOPNEAR</div>
+            <div className="line2">Selling through AasPass</div>
           </div>
           <div className="ob-hero-stats">
             {STATS.map((s) => (
@@ -110,7 +103,7 @@ export default function AuthLayout({ children, actions }) {
             ))}
           </div>
           <div className="ob-hero-trust">
-            Over 10K+ Brands trust ShopNear to help grow their business from 2X
+            Over 10K+ Brands trust AasPass to help grow their business from 2X
             to 10X across 1500+ Pincodes.
           </div>
           <BrandStrip />

@@ -18,7 +18,7 @@ const REASONS = [
 const friendly = (message, fallback) => {
   if (!message) return fallback;
   if (message.includes("not found"))
-    return "No Aaspass account found with this mobile number.";
+    return "No AasPass account found with this mobile number.";
   if (message.includes("too many"))
     return "Too many attempts. Please try again after some time.";
   return message;
@@ -37,7 +37,7 @@ const DeleteAccount = () => {
   const [msg, setMsg] = useState(null); // { type: "err" | "ok", text }
 
   useEffect(() => {
-    document.title = "Delete your Aaspass account";
+    document.title = "Delete your AasPass account";
   }, []);
 
   const sendOtp = async () => {
@@ -112,8 +112,8 @@ const DeleteAccount = () => {
 
   return (
     <PublicLayout
-      title="Delete your Aaspass account"
-      subtitle="Aaspass (aaspas.app) · Android app"
+      title="Delete your AasPass account"
+      subtitle="AasPass (aaspas.app) · Android app"
       footer={
         <>
           Read our <Link to="/privacy-policy">Privacy Policy</Link>. Need help
@@ -125,14 +125,14 @@ const DeleteAccount = () => {
       <div className="pub-card">
         <h2>How to request account deletion</h2>
         <p>
-          You can delete your Aaspass account either from inside the app or
+          You can delete your AasPass account either from inside the app or
           using the form on this page. Both methods delete the same data.
         </p>
         <p>
           <strong>From the app:</strong>
         </p>
         <ol>
-          <li>Open the Aaspass app and log in.</li>
+          <li>Open the AasPass app and log in.</li>
           <li>
             Go to <strong>My Profile</strong>.
           </li>
@@ -283,7 +283,7 @@ const DeleteAccount = () => {
             <p>
               Your account is now scheduled for permanent deletion in 7 days,
               and you have been logged out from all devices. If you change your
-              mind, simply log in to the Aaspass app within 7 days and your
+              mind, simply log in to the AasPass app within 7 days and your
               account will be restored.
             </p>
           </>

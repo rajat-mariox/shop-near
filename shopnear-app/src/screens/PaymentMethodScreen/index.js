@@ -135,12 +135,12 @@ export default function PaymentMethodScreen({ navigation, route }) {
       const { razorpayOrderId, amount, currency, keyId } = paymentResult.data;
 
       const options = {
-        description: 'ShopNear Order Payment',
+        description: 'AasPass Order Payment',
         currency: currency || 'INR',
         key: keyId,
         amount: amount,
         order_id: razorpayOrderId,
-        name: 'ShopNear',
+        name: 'AasPass',
         prefill: {
           contact: address?.phone || '',
           ...razorpayPrefillFor(method),

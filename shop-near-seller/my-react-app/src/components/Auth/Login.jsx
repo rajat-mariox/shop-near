@@ -130,7 +130,7 @@ export default function Login() {
   return (
     <AuthLayout actions={actions}>
       <form className="ob-login-card" onSubmit={handleSubmit}>
-        <h2 className="ob-card-title">Welcome to ShopNear</h2>
+        <h2 className="ob-card-title">Welcome to AasPass</h2>
         <p className="ob-card-sub">Create your account to start selling</p>
 
         {error && <div className="ob-error">{error}</div>}

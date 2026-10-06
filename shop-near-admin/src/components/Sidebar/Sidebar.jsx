@@ -69,7 +69,7 @@ const Sidebar = () => {
         >
           <img
             src="/newLogo.jpeg"
-            alt="ShopNear"
+            alt="AasPass"
             style={{
               width: 36,
               height: 36,
@@ -83,7 +83,7 @@ const Sidebar = () => {
               Admin Panel
             </div>
             <div style={{ fontWeight: 700, color: "#222", fontSize: 16 }}>
-              ShopNear
+              AasPass
             </div>
           </div>
         </div>

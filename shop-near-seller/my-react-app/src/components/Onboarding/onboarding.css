@@ -41,43 +41,13 @@
   }
 }
 
-/* ---------- Logo (cropped from Figma sprite) ---------- */
+/* ---------- AasPass logo ---------- */
 .sn-logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.sn-logo-pin {
-  position: relative;
-  width: 37px;
-  height: 48px;
-  overflow: hidden;
-}
-
-.sn-logo-pin img {
-  position: absolute;
-  width: 422.34%;
-  height: 326.35%;
-  left: -155.52%;
-  top: -97.2%;
-  max-width: none;
-}
-
-.sn-logo-text {
-  position: relative;
-  width: 169px;
-  height: 35px;
-  overflow: hidden;
-}
-
-.sn-logo-text img {
-  position: absolute;
-  width: 234.12%;
-  height: 1133.65%;
-  left: -63.93%;
-  top: -719.24%;
-  max-width: none;
+  display: block;
+  width: 80px;
+  height: 80px;
+  max-width: 100%;
+  object-fit: contain;
 }
 
 /* ---------- Right hero panel ---------- */

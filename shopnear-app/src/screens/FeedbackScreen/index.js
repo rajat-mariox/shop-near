@@ -162,7 +162,7 @@ const FeedbackScreen = ({ navigation, route }) => {
         <Text style={styles.question}>
           {isProductReview
             ? `How was "${productName || 'this product'}"?`
-            : 'What is your opinion of ShopNear?'}
+            : 'What is your opinion of AasPass?'}
         </Text>
 
         {/* Stars (figma 55:9982) */}
