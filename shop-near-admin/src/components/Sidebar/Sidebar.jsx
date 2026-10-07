@@ -33,7 +33,7 @@ const NAV_SECTIONS = [
   },
 ];
 
-const Sidebar = () => {
+const Sidebar = ({ open = false, onClose }) => {
   const location = useLocation();
   const { admin, logout } = useAuthStore();
 
@@ -43,18 +43,8 @@ const Sidebar = () => {
   };
 
   return (
-    <aside
-      style={{
-        width: 260,
-        background: "#fff",
-        borderRight: "1px solid #ececec",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        padding: "24px 0",
-      }}
-    >
-      <div style={{ padding: "0 32px", marginBottom: 32 }}>
+    <aside className={`admin-sidebar ${open ? "open" : ""}`}>
+      <div className="sidebar-brand">
         <div
           style={{
             background: "#fff",
@@ -65,6 +55,8 @@ const Sidebar = () => {
             border: "1px solid #ececec",
             height: 55,
             padding: "0 16px",
+            flex: 1,
+            minWidth: 0,
           }}
         >
           <img
@@ -87,6 +79,21 @@ const Sidebar = () => {
             </div>
           </div>
         </div>
+        <button
+          type="button"
+          className="sidebar-close"
+          aria-label="Close menu"
+          onClick={onClose}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M6 6l12 12M18 6L6 18"
+              stroke="#555"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
       </div>
 
       <nav style={{ flex: 1 }}>
@@ -160,11 +167,19 @@ const Sidebar = () => {
           >
             {(admin?.name || admin?.email || "A").charAt(0).toUpperCase()}
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 600, fontSize: 14 }}>
               {admin?.name || "Admin"}
             </div>
-            <div style={{ fontSize: 12, color: "#888" }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: "#888",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
               {admin?.email || "admin@shopnear.com"}
             </div>
           </div>

@@ -1,0 +1,118 @@
+.lp-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #eef1f4;
+  isolation: isolate;
+}
+.lp-map {
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+.lp-map .leaflet-control-attribution {
+  font-size: 10px;
+}
+
+/* Pin marker */
+.lp-pin {
+  background: transparent;
+  border: none;
+}
+.lp-pin-dot {
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  background: #ff6051;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+.lp-pin-dot::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+}
+.lp-pin::after {
+  content: "";
+  position: absolute;
+  left: 11px;
+  bottom: 0;
+  width: 8px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* My location button */
+.lp-locate {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  color: #ff6051;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.lp-locate:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+/* Hint chip */
+.lp-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 500;
+  max-width: calc(100% - 24px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.78);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lp-hint.set {
+  background: rgba(35, 161, 73, 0.9);
+}
+@media (max-width: 480px) {
+  .lp-hint {
+    white-space: normal;
+  }
+  .lp-locate span {
+    display: none;
+  }
+  .lp-locate {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+}

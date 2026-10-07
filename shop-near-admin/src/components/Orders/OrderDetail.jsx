@@ -21,8 +21,8 @@ const statusBadge = (s) => {
 };
 
 const InfoRow = ({ label, value }) => (
-  <div style={{ display: "flex", marginBottom: 10 }}>
-    <div style={{ width: 160, fontWeight: 500, color: "#888", fontSize: 14 }}>
+  <div className="info-row" style={{ display: "flex", marginBottom: 10 }}>
+    <div className="info-label" style={{ width: 160, flexShrink: 0, fontWeight: 500, color: "#888", fontSize: 14 }}>
       {label}
     </div>
     <div style={{ fontWeight: 600, color: "#333", fontSize: 14 }}>
@@ -156,9 +156,7 @@ const OrderDetail = () => {
       </div>
 
       {/* Summary Cards */}
-      <div
-        style={{ display: "flex", gap: 20, marginBottom: 24, flexWrap: "wrap" }}
-      >
+      <div className="detail-stats">
         {[
           { label: "Grand Total", value: formatCurrency(order.grandTotal) },
           { label: "Payment Mode", value: order.paymentMode?.toUpperCase() },
@@ -168,7 +166,7 @@ const OrderDetail = () => {
           <div
             key={s.label}
             className="card"
-            style={{ flex: 1, textAlign: "center", minWidth: 140 }}
+            style={{ flex: 1, textAlign: "center" }}
           >
             <div
               style={{

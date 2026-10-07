@@ -3,27 +3,36 @@ import useAuthStore from "../../store/authStore";
 import fallbackLogo from "../../assets/Images/newLogo.jpeg";
 import NotificationBell from "./NotificationBell";
 
-const Header = () => {
+const Header = ({ onMenuClick }) => {
   const seller = useAuthStore((s) => s.seller);
 
   return (
-    <header
-      style={{
-        width: "100%",
-        minHeight: 87,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        gap: 16,
-        padding: "24px 32px",
-        background: "#fff",
-        borderBottom: "2px solid #e7e7e7",
-      }}
-    >
+    <header className="seller-header">
+      {/* Mobile/tablet: hamburger + logo (desktop par CSS se hidden) */}
+      <div className="header-mobile-brand">
+        <button
+          type="button"
+          className="header-menu-btn"
+          aria-label="Open menu"
+          onClick={onMenuClick}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M4 7h16M4 12h16M4 17h10"
+              stroke="#222"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+        <img src={fallbackLogo} alt="AasPass" className="header-logo" />
+        <span className="header-title">AasPass</span>
+      </div>
+      <div style={{ flex: 1 }} />
       {/* Right content */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <NotificationBell />
-        <div style={{ width: 1, height: 34, background: "#e7e7e7" }} />
+        <div className="header-divider" style={{ width: 1, height: 34, background: "#e7e7e7" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ position: "relative", width: 40, height: 36, flexShrink: 0 }}>
             <img

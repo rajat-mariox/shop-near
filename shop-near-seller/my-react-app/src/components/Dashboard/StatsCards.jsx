@@ -12,6 +12,7 @@ const fmt = (n) => {
 
 const StatCard = ({ title, value, sub, subLabel, primary = false }) => (
   <div
+    className="stat-card"
     style={{
       background: primary ? "#FF6051" : "#fff",
       border: "1px solid #e7e7e7",

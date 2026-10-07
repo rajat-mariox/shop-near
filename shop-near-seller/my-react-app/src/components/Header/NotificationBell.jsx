@@ -170,6 +170,7 @@ const NotificationBell = () => {
 
       {open && (
         <div
+          className="notif-dropdown"
           style={{
             position: "absolute",
             top: 46,

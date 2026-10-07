@@ -174,7 +174,7 @@ const Agents = () => {
   };
 
   return (
-    <div style={{ padding: 32, fontFamily: FONT }}>
+    <div className="page-wrap" style={{ padding: 32, fontFamily: FONT }}>
       {/* Header + breadcrumbs */}
       <div
         style={{
@@ -229,7 +229,7 @@ const Agents = () => {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
+            <table className="rt" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
               <thead>
                 <tr>
                   <th style={{ ...thStyle, borderTopLeftRadius: 16, minWidth: 160 }}>Name</th>

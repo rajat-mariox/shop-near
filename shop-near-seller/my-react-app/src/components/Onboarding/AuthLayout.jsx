@@ -74,6 +74,12 @@ export default function AuthLayout({ children, actions }) {
       <div className="ob-left">
         <div className="ob-left-logo">
           <AasPassLogo />
+          {/* Mobile/tablet: hero panel hidden, so actions + tagline yahan */}
+          {actions && <div className="ob-left-actions">{actions}</div>}
+        </div>
+        <div className="ob-mobile-tagline">
+          <div className="line1">Grow your Business Faster By</div>
+          <div className="line2">Selling through AasPass</div>
         </div>
         <div className="ob-left-center">{children}</div>
       </div>

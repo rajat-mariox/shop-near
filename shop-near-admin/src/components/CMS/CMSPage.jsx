@@ -86,12 +86,13 @@ const CMSPage = () => {
         CMS Pages
       </div>
 
-      <div style={{ display: "flex", gap: 24 }}>
+      <div className="cms-layout">
         {/* Sidebar nav */}
-        <div className="card" style={{ minWidth: 200, padding: 0 }}>
+        <div className="card cms-nav">
           {CMS_TYPES.map((type) => (
             <div
               key={type}
+              className={`cms-nav-item ${activeType === type ? "active" : ""}`}
               onClick={() => setActiveType(type)}
               style={{
                 padding: "14px 20px",
@@ -112,7 +113,7 @@ const CMSPage = () => {
         </div>
 
         {/* Editor */}
-        <div className="card" style={{ flex: 1 }}>
+        <div className="card" style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 16 }}>
             {CMS_LABELS[activeType]}
           </div>

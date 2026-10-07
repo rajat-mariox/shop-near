@@ -18,6 +18,7 @@ import Onboarding from "./components/Onboarding/Onboarding";
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import useAuthStore from "./store/authStore";
+import useResponsiveTables from "./hooks/useResponsiveTables";
 
 function DashboardContent() {
   return (
@@ -54,6 +55,11 @@ function ProtectedLayout() {
   const seller = useAuthStore((s) => s.seller);
   const loading = useAuthStore((s) => s.loading);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  useResponsiveTables();
+  useEffect(() => {
+    document.body.classList.toggle("nav-locked", sidebarOpen);
+    return () => document.body.classList.remove("nav-locked");
+  }, [sidebarOpen]);
 
   if (loading) {
     return (
@@ -82,14 +88,6 @@ function ProtectedLayout() {
 
   return (
     <div className="app-container">
-      {/* Mobile hamburger */}
-      <button
-        className="sidebar-toggle"
-        onClick={() => setSidebarOpen(true)}
-      >
-        ☰
-      </button>
-
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -104,7 +102,7 @@ function ProtectedLayout() {
       </div>
 
       <div className="main-content">
-        <Header />
+        <Header onMenuClick={() => setSidebarOpen(true)} />
         <Routes>
           <Route path="/" element={<DashboardContent />} />
           <Route path="/product" element={<Product />} />

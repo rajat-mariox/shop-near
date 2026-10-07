@@ -167,20 +167,16 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Row */}
-      <div
-        style={{ display: "flex", gap: 20, marginBottom: 28, flexWrap: "wrap" }}
-      >
+      <div className="stat-grid">
         {statCards.map((s) => (
           <div
             key={s.label}
             style={{
-              flex: "1 1 180px",
               background: s.bg,
               borderRadius: 16,
               padding: "22px 20px",
               boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
               border: s.bg === "#fff" ? "1px solid #ececec" : "none",
-              minWidth: 170,
             }}
           >
             <div
@@ -213,10 +209,8 @@ const Dashboard = () => {
       </div>
 
       {/* Charts Row */}
-      <div
-        style={{ display: "flex", gap: 24, marginBottom: 28, flexWrap: "wrap" }}
-      >
-        <div className="card" style={{ flex: "2 1 500px", minWidth: 400 }}>
+      <div className="dash-row">
+        <div className="card" style={{ flex: "2 1 420px" }}>
           <div
             style={{
               fontWeight: 600,
@@ -280,8 +274,7 @@ const Dashboard = () => {
         <div
           className="card"
           style={{
-            flex: "1 1 280px",
-            minWidth: 260,
+            flex: "1 1 260px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -364,8 +357,8 @@ const Dashboard = () => {
       </div>
 
       {/* Bottom Tables */}
-      <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-        <div className="card" style={{ flex: "1 1 440px" }}>
+      <div className="dash-row" style={{ marginBottom: 0 }}>
+        <div className="card" style={{ flex: "1 1 380px" }}>
           <div
             style={{
               fontWeight: 600,
@@ -415,7 +408,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="card" style={{ flex: "1 1 440px" }}>
+        <div className="card" style={{ flex: "1 1 380px" }}>
           <div
             style={{
               fontWeight: 600,

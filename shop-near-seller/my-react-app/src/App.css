@@ -95,30 +95,6 @@ input, textarea {
   display: none;
 }
 
-/* Hamburger button */
-.sidebar-toggle {
-  display: none;
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 1001;
-  background: #fff;
-  border: 1px solid #ececec;
-  border-radius: 8px;
-  width: 40px;
-  height: 40px;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-/* Sidebar overlay for mobile */
-.sidebar-overlay {
-  display: none;
-}
-
 /* Hide global scrollbar */
 ::-webkit-scrollbar {
   display: none;
@@ -139,74 +115,371 @@ table {
   -webkit-overflow-scrolling: touch;
 }
 
-/* ── Responsive ── */
-@media (max-width: 1024px) {
-  .dashboard-content {
-    padding: 20px;
-  }
-
-  .dashboard-content > div {
-    flex-wrap: wrap;
-  }
-
-  .dashboard-content > div > * {
-    min-width: 280px;
-    flex: 1 1 100%;
-  }
+/* ===================================================================
+   Header (mobile brand + hamburger)
+   =================================================================== */
+.seller-header {
+  width: 100%;
+  flex-shrink: 0;
+  min-height: 87px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 32px;
+  background: #fff;
+  border-bottom: 2px solid #e7e7e7;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.header-mobile-brand {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.header-menu-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid #ececec;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.header-menu-btn:active {
+  background: #fff0ee;
+}
+.header-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  object-fit: cover;
+}
+.header-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: #222;
+}
+.sidebar-overlay {
+  display: none;
+}
+body.nav-locked {
+  overflow: hidden;
 }
 
-@media (max-width: 768px) {
-  .sidebar-toggle {
-    display: flex;
-  }
-
+/* ===================================================================
+   Tablet (<= 1024px): sidebar becomes a drawer
+   =================================================================== */
+@media (max-width: 1024px) {
   .seller-sidebar {
     position: fixed;
     top: 0;
-    left: -280px;
-    z-index: 1000;
-    height: 100vh;
-    transition: left 0.3s ease;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.15);
-  }
-
-  .seller-sidebar.open {
     left: 0;
+    z-index: 1100;
+    height: 100vh;
+    max-width: 86vw;
+    transform: translateX(-105%);
+    transition: transform 0.28s ease;
   }
-
+  .seller-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.18);
+  }
   .sidebar-overlay {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.3);
-    z-index: 999;
+    background: rgba(17, 17, 17, 0.4);
+    z-index: 1090;
+    animation: fade-in 0.2s ease;
   }
-
   .main-content {
     width: 100%;
   }
-
+  .seller-header {
+    min-height: 0;
+    padding: 12px 20px;
+  }
+  .header-mobile-brand {
+    display: flex;
+  }
   .dashboard-content {
-    padding: 16px;
-  }
-
-  .dashboard-content > div {
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  header {
-    padding: 12px 16px !important;
-  }
-
-  header input {
-    width: 100% !important;
-    max-width: 100% !important;
+    padding: 20px;
   }
 }
 
-@media (max-width: 480px) {
+/* ===================================================================
+   Phone (<= 640px)
+   =================================================================== */
+@media (max-width: 640px) {
+  .seller-header {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  .header-user-text,
+  .header-divider {
+    display: none;
+  }
   .dashboard-content {
-    padding: 12px;
+    padding: 16px 14px 28px;
+  }
+  .dashboard-content > div:first-child [style*="font-size: 24px"] {
+    font-size: 21px !important;
+  }
+  .dash-row,
+  .dash-col {
+    gap: 16px;
+  }
+  .dash-row > * {
+    flex-basis: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Filter / action rows wrap instead of overflowing */
+  .dashboard-content [style*="justify-content: space-between"] {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .dashboard-content [style*="flex: 1"] {
+    min-width: 0;
+  }
+  .dashboard-content img {
+    max-width: 100%;
+  }
+}
+
+/* ===================================================================
+   List tables -> cards (<= 900px). Labels come from useResponsiveTables.
+   =================================================================== */
+@media (max-width: 900px) {
+  table.rt {
+    min-width: 0 !important;
+    border-spacing: 0;
+  }
+  table.rt,
+  table.rt tbody {
+    display: block;
+    width: 100%;
+  }
+  table.rt thead {
+    display: none;
+  }
+  table.rt tbody tr {
+    display: block;
+    position: relative;
+    background: #fff;
+    border: 1px solid #ececec;
+    border-radius: 14px;
+    padding: 4px 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+  table.rt td {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 9px 0 !important;
+    border-bottom: 1px dashed #efefef !important;
+    border-radius: 0 !important;
+    text-align: right !important;
+    white-space: normal !important;
+    word-break: break-word;
+    font-size: 14px;
+    background: transparent !important;
+  }
+  table.rt td::before {
+    content: attr(data-label);
+    margin-right: auto;
+    flex-shrink: 0;
+    max-width: 45%;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8a8a8a;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  table.rt td[data-label=""]::before,
+  table.rt td[data-full]::before {
+    display: none;
+  }
+  table.rt td[data-full] {
+    justify-content: center;
+    text-align: center !important;
+    border-bottom: none !important;
+  }
+  table.rt td:last-child {
+    border-bottom: none !important;
+  }
+  table.rt tr:has(> td[data-full]) {
+    border-style: dashed;
+    box-shadow: none;
+  }
+
+  /* Selection checkbox sits in the card corner */
+  table.rt tbody tr:has(> td[data-check]) {
+    padding-right: 44px;
+  }
+  table.rt td:first-child[data-check] {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    padding: 0 !important;
+    border: none !important;
+  }
+  /* Card title = first real column */
+  table.rt td:first-child:not([data-check]):not([data-full]),
+  table.rt td:first-child[data-check] + td {
+    justify-content: flex-start;
+    text-align: left !important;
+    padding: 12px 0 10px !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    font-weight: 600;
+  }
+  table.rt td:first-child:not([data-check]):not([data-full])::before,
+  table.rt td:first-child[data-check] + td::before {
+    display: none;
+  }
+  table.rt td > div {
+    max-width: 100%;
+  }
+}
+
+/* Tablet: two cards per row */
+@media (min-width: 641px) and (max-width: 900px) {
+  table.rt tbody {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  table.rt tbody tr {
+    margin-bottom: 0;
+  }
+  table.rt tbody tr:has(> td[data-full]) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Notification dropdown: full width under the header on phones */
+@media (max-width: 640px) {
+  .notif-dropdown {
+    position: fixed !important;
+    top: 62px !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Page wrappers (Product, Orders, Customers, Agents, Sales, Account) */
+@media (max-width: 1024px) {
+  .page-wrap {
+    padding: 20px !important;
+  }
+}
+@media (max-width: 640px) {
+  .page-wrap {
+    padding: 16px 14px 28px !important;
+  }
+  .page-wrap > div:first-child [style*="font-size: 24px"],
+  .page-wrap > div[style*="font-size: 23px"] {
+    font-size: 21px !important;
+  }
+  .page-wrap [style*="justify-content: space-between"] {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .page-wrap [style*="flex: 1"] {
+    min-width: 0;
+  }
+  .page-wrap img {
+    max-width: 100%;
+  }
+  .scroll-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .scroll-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .scroll-tabs > * {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+/* Inline popups (fixed overlay + box) become bottom sheets on phones */
+@media (max-width: 640px) {
+  .page-wrap div[style*="position: fixed"][style*="inset: 0"] {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .page-wrap div[style*="position: fixed"][style*="inset: 0"] > div {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 90vh !important;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0 !important;
+    padding: 22px 16px calc(20px + env(safe-area-inset-bottom)) !important;
+    animation: sheet-up 0.25s ease;
+  }
+  .page-wrap div[style*="position: fixed"][style*="inset: 0"] [style*="display: flex"][style*="gap"] > button {
+    flex: 1 1 auto;
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Dashboard stat cards on phones */
+@media (max-width: 640px) {
+  .stat-card {
+    height: 132px !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+  .stat-card,
+  .stat-card [style*="justify-content: space-between"] {
+    flex-wrap: nowrap !important;
+  }
+  .stat-card > div:first-child > span {
+    font-size: 14px !important;
+    white-space: normal !important;
+  }
+  .stat-card > div:last-child > span:first-child {
+    font-size: 26px !important;
+  }
+}
+@media (max-width: 640px) {
+  .stat-card > div:last-child {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 2px !important;
+  }
+  .stat-card > div:last-child > div {
+    align-items: flex-start !important;
   }
 }

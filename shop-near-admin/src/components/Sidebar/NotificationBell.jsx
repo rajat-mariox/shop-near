@@ -171,7 +171,7 @@ const NotificationBell = () => {
       </button>
 
       {open && (
-        <div
+        <div className="notif-dropdown"
           style={{
             position: "absolute",
             top: 44,

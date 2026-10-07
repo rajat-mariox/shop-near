@@ -180,7 +180,7 @@ const Customer = () => {
   };
 
   return (
-    <div style={{ padding: 32, fontFamily: FONT }}>
+    <div className="page-wrap" style={{ padding: 32, fontFamily: FONT }}>
       {/* Header + breadcrumbs */}
       <div style={{ marginBottom: 22 }}>
         <div style={{ fontSize: 24, fontWeight: 600, color: "#2A2A2A", lineHeight: 1.3 }}>
@@ -397,7 +397,7 @@ const Customer = () => {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
+            <table className="rt" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
               <thead>
                 <tr>
                   <th style={{ ...thStyle, width: 48, borderTopLeftRadius: 16, padding: 12 }}>
