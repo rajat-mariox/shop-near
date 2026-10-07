@@ -813,7 +813,9 @@ const styles = StyleSheet.create({
   productImage: {
     width: CARD_W,
     height: px(186),
-    resizeMode: 'cover',
+    // contain + white bg: panel image ko square + white padding karta hai, toh kuch katta nahi
+    backgroundColor: '#FFFFFF',
+    resizeMode: 'contain',
   },
   dotsRow: {
     position: 'absolute',

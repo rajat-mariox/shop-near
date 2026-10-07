@@ -785,8 +785,9 @@ const styles = StyleSheet.create({
     width: px(126),
     height: px(150),
     borderRadius: px(8),
-    backgroundColor: '#F6F6F6',
-    resizeMode: 'cover',
+    // contain + white bg: panel image ko square + white padding karta hai, toh kuch katta nahi
+    backgroundColor: '#FFFFFF',
+    resizeMode: 'contain',
   },
   similarName: {
     ...F,
