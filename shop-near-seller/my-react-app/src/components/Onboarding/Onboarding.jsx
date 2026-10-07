@@ -10,7 +10,14 @@ import useAuthStore from "../../store/authStore";
 import AuthLayout from "./AuthLayout";
 import checkCircle from "../../assets/onboarding/check-circle.svg";
 import uploadCloud from "../../assets/onboarding/upload-cloud-1.svg";
-import mapPreview from "../../assets/onboarding/map-preview.png";
+import LocationPicker from "../common/LocationPicker";
+import {
+  searchPlaces,
+  resolvePlace,
+  reverseGeocode,
+  getKnownPosition,
+  placeProvider,
+} from "../../utils/placeSearch";
 
 function UploadBox({ label, file, onFile, accept }) {
   const inputRef = useRef(null);
@@ -83,7 +90,18 @@ export default function Onboarding({ verification = false }) {
   const [address, setAddress] = useState("");
   const [coords, setCoords] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
+  const [searchState, setSearchState] = useState("idle"); // idle|loading|done|empty|error
+  const [placeMeta, setPlaceMeta] = useState({ city: "", pincode: "" });
   const sugTimer = useRef(null);
+  const searchReq = useRef(0);
+  const nearRef = useRef(null);
+
+  // Permission pehle se ho to browser location — search me paas wale results pehle
+  useEffect(() => {
+    getKnownPosition().then((p) => {
+      nearRef.current = p;
+    });
+  }, []);
 
   const token = localStorage.getItem("sellerToken");
 
@@ -191,73 +209,58 @@ export default function Onboarding({ verification = false }) {
     }
   };
 
-  // Address autocomplete — Photon (OpenStreetMap), free/no API key.
-  // Debounce ke saath, India bounding box tak limited. Plain fetch use
-  // karo — axios client Authorization token inject karta hai jo bahar
-  // ke API par nahi jana chahiye.
+  // Address / shop search — Google Places (key ho to) warna OpenStreetMap.
+  // Paas wale results pehle (pin ya browser location ke aas-paas). Kuch na
+  // mile to seller map par tap karke pin laga sakta hai.
   const handleAddressChange = (val) => {
     setAddress(val);
-    setCoords(null); // address haath se badla to purana pin invalid
     if (sugTimer.current) clearTimeout(sugTimer.current);
-    if (!val || val.trim().length < 3) {
+    const q = val.trim();
+    if (q.length < 3) {
       setSuggestions([]);
+      setSearchState("idle");
       return;
     }
     sugTimer.current = setTimeout(async () => {
+      const reqId = ++searchReq.current;
+      setSearchState("loading");
       try {
-        const url =
-          "https://photon.komoot.io/api/?limit=5&lang=en" +
-          "&bbox=68.1,6.5,97.4,35.7" +
-          "&q=" +
-          encodeURIComponent(val.trim());
-        const res = await fetch(url);
-        const json = await res.json();
-        const items = (json.features || [])
-          .map((f) => {
-            const p = f.properties || {};
-            const label = [
-              p.name,
-              p.street,
-              p.district,
-              p.city,
-              p.state,
-              p.postcode,
-            ]
-              .filter(Boolean)
-              .filter((v, i, arr) => arr.indexOf(v) === i)
-              .join(", ");
-            return {
-              label,
-              lat: f.geometry?.coordinates?.[1],
-              lng: f.geometry?.coordinates?.[0],
-            };
-          })
-          .filter((s) => s.label);
+        const items = await searchPlaces(q, coords || nearRef.current);
+        if (reqId !== searchReq.current) return; // purana response
         setSuggestions(items);
+        setSearchState(items.length ? "done" : "empty");
       } catch {
+        if (reqId !== searchReq.current) return;
         setSuggestions([]);
+        setSearchState("error");
       }
     }, 350);
   };
 
-  const pickSuggestion = (s) => {
-    setAddress(s.label);
-    if (s.lat && s.lng) setCoords({ lat: s.lat, lng: s.lng });
+  const pickSuggestion = async (s) => {
     setSuggestions([]);
+    setSearchState("idle");
+    setAddress(s.label);
+    try {
+      const place = await resolvePlace(s);
+      if (place?.lat && place?.lng) {
+        setCoords({ lat: place.lat, lng: place.lng });
+        setPlaceMeta({ city: place.city || "", pincode: place.pincode || "" });
+        setError("");
+      }
+    } catch {
+      setError("Is jagah ki location nahi mil payi. Map par tap karke pin lagayein.");
+    }
   };
 
-  const handleFindOnMap = () => {
-    if (!navigator.geolocation) {
-      setError("Geolocation is not supported by this browser");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setError("");
-      },
-      () => setError("Could not fetch your location"),
-    );
+  // Map tap / drag / GPS se pin. Address khaali ho to pin ka address bhar do.
+  const setPin = async (pt) => {
+    setCoords(pt);
+    setError("");
+    const place = await reverseGeocode(pt.lat, pt.lng);
+    if (!place) return;
+    setPlaceMeta({ city: place.city || "", pincode: place.pincode || "" });
+    setAddress((prev) => (prev.trim() ? prev : place.label));
   };
 
   const handleStep2Continue = async () => {
@@ -266,7 +269,7 @@ export default function Onboarding({ verification = false }) {
     // Exact location zaroori hai - isi se user app me "Shops Near You" me dikhoge
     if (!coords)
       return setError(
-        "Please pin your shop location: pick a suggestion or tap FIND ON MAP"
+        "Please pin your shop on the map: search it, or tap the map at your shop"
       );
     setError("");
     setSaving(true);
@@ -280,6 +283,8 @@ export default function Onboarding({ verification = false }) {
       profileData.append("address", address.trim());
       profileData.append("lat", coords.lat);
       profileData.append("lng", coords.lng);
+      if (placeMeta.city) profileData.append("city", placeMeta.city);
+      if (placeMeta.pincode) profileData.append("pincode", placeMeta.pincode);
       if (shopImage) profileData.append("shopImages", shopImage);
       profileData.append("status", "pending_approval");
       await updateSellerProfile(profileData);
@@ -464,57 +469,63 @@ export default function Onboarding({ verification = false }) {
                 className="ob-input"
                 value={address}
                 onChange={(e) => handleAddressChange(e.target.value)}
-                onBlur={() => setTimeout(() => setSuggestions([]), 200)}
-                placeholder="Enter Shop Location"
+                onBlur={() =>
+                  setTimeout(() => {
+                    setSuggestions([]);
+                    setSearchState("idle");
+                  }, 200)
+                }
+                placeholder="Search shop name, building, market or area"
                 autoComplete="off"
               />
-              {suggestions.length > 0 && (
+              {searchState !== "idle" && (
                 <div className="ob-sug-list">
+                  {searchState === "loading" && suggestions.length === 0 && (
+                    <div className="ob-sug-note">Searching...</div>
+                  )}
                   {suggestions.map((s, i) => (
                     <button
                       type="button"
-                      key={`${s.label}-${i}`}
+                      key={`${s.id || s.label}-${i}`}
                       className="ob-sug-item"
                       onMouseDown={() => pickSuggestion(s)}
                     >
-                      {s.label}
+                      <span className="ob-sug-title">{s.title || s.label}</span>
+                      {s.subtitle && <span className="ob-sug-sub">{s.subtitle}</span>}
                     </button>
                   ))}
+                  {(searchState === "empty" || searchState === "error") && (
+                    <div className="ob-sug-note">
+                      {searchState === "error"
+                        ? "Search abhi kaam nahi kar raha."
+                        : "Yeh jagah search me nahi mili."}{" "}
+                      Neeche map par apni dukaan par tap karke pin lagayein.
+                    </div>
+                  )}
+                  {placeProvider === "ola" && suggestions.length > 0 && (
+                    <div className="ob-sug-powered">Powered by Ola Maps</div>
+                  )}
                 </div>
               )}
             </div>
 
-            <div className="ob-findmap-row">
-              <button
-                type="button"
-                className="ob-findmap-btn"
-                onClick={handleFindOnMap}
-              >
-                {coords ? "USE MY CURRENT LOCATION" : "FIND ON MAP"}
-              </button>
-              {coords && (
-                <span className="ob-coords-note">
-                  Pinned: {Number(coords.lat).toFixed(5)}, {Number(coords.lng).toFixed(5)}
-                </span>
+            <div className="ob-field">
+              <div className="ob-map-head">
+                <label style={{ margin: 0 }}>Pin your shop on the map</label>
+                {coords && (
+                  <span className="ob-coords-note">
+                    {Number(coords.lat).toFixed(5)}, {Number(coords.lng).toFixed(5)}
+                  </span>
+                )}
+              </div>
+              <LocationPicker value={coords} onChange={setPin} height={300} />
+              {!coords && (
+                <p className="ob-coords-hint">
+                  Shop location is required. Search above, tap the map at your shop, or
+                  use My location while standing in the shop.
+                </p>
               )}
             </div>
-
-            {/* Pin set hone par live map (OpenStreetMap embed) - seller dekh le ki pin sahi jagah hai */}
-            {coords ? (
-              <iframe
-                className="ob-map-img ob-map-frame"
-                title="Shop location"
-                src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng - 0.004},${coords.lat - 0.0025},${coords.lng + 0.004},${coords.lat + 0.0025}&layer=mapnik&marker=${coords.lat},${coords.lng}`}
-              />
-            ) : (
-              <img className="ob-map-img" src={mapPreview} alt="Map" />
-            )}
-            {!coords && (
-              <p className="ob-coords-hint">
-                Shop location is required. Pick a suggestion above or tap FIND ON MAP
-                while standing at your shop.
-              </p>
-            )}
 
             <button
               className="ob-continue-btn"

@@ -78,7 +78,7 @@ const SalesReport = () => {
   };
 
   return (
-    <div style={{ padding: 32 }}>
+    <div className="page-wrap" style={{ padding: 32 }}>
       <div style={{ fontSize: 23, fontWeight: 600, color: "#2A2A2A", marginBottom: 20 }}>
         Sales Report
       </div>
@@ -231,7 +231,7 @@ const SalesReport = () => {
           <div style={{ textAlign: "center", padding: 40, color: "#888" }}>Loading...</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <table className="rt" style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr style={{ background: "#f7f7fa" }}>
                   {["Order ID", "Customer", "Items", "Amount", "Status", "Date"].map((h) => (

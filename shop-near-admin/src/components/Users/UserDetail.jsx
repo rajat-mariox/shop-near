@@ -3,8 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getUserDetail, toggleUserStatus } from "../../api/adminApi";
 
 const InfoRow = ({ label, value }) => (
-  <div style={{ display: "flex", marginBottom: 12 }}>
-    <div style={{ width: 160, fontWeight: 500, color: "#888", fontSize: 14 }}>
+  <div className="info-row" style={{ display: "flex", marginBottom: 12 }}>
+    <div className="info-label" style={{ width: 160, flexShrink: 0, fontWeight: 500, color: "#888", fontSize: 14 }}>
       {label}
     </div>
     <div style={{ fontWeight: 600, color: "#333", fontSize: 14 }}>
@@ -62,7 +62,7 @@ const UserDetail = () => {
         User Details
       </div>
 
-      <div className="card" style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 24 }}>
+      <div className="card detail-hero" style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 24 }}>
         <img
           src={
             user.profileImages ||
@@ -71,7 +71,7 @@ const UserDetail = () => {
           alt=""
           style={{ width: 72, height: 72, borderRadius: 12, objectFit: "cover" }}
         />
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: 20 }}>{user.fullName || "Unnamed User"}</div>
           <div style={{ color: "#888", fontSize: 14 }}>
             {user.countryCode} {user.mobileNumber} {user.email ? `· ${user.email}` : ""}
@@ -80,7 +80,7 @@ const UserDetail = () => {
             {user.isActive ? "Active" : "Blocked"}
           </span>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="detail-hero-actions" style={{ display: "flex", gap: 10 }}>
           <button className="btn btn-outline btn-sm" onClick={() => navigate("/users")}>
             ← Back
           </button>

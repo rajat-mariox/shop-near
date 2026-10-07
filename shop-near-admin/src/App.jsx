@@ -1,6 +1,13 @@
 import "./App.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+import { useEffect, useState } from "react";
+import useResponsiveTables from "./hooks/useResponsiveTables";
 import Sidebar from "./components/Sidebar/Sidebar";
 import Header from "./components/Header/Header";
 import Dashboard from "./components/Dashboard/Dashboard";
@@ -26,14 +33,31 @@ import useAuthStore from "./store/authStore";
 
 function ProtectedLayout() {
   const { admin, loading } = useAuthStore();
+  const [navOpen, setNavOpen] = useState(false);
+  const location = useLocation();
+  useResponsiveTables();
+
+  // Mobile drawer: page badalte hi band, aur khula ho to body scroll lock
+  useEffect(() => {
+    setNavOpen(false);
+  }, [location.pathname]);
+  useEffect(() => {
+    document.body.classList.toggle("nav-locked", navOpen);
+    return () => document.body.classList.remove("nav-locked");
+  }, [navOpen]);
+
   if (loading)
     return <div style={{ padding: 40, textAlign: "center" }}>Loading...</div>;
   if (!admin) return <Navigate to="/login" replace />;
   return (
     <div className="app-container">
-      <Sidebar />
+      <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
+      <div
+        className={`sidebar-backdrop ${navOpen ? "show" : ""}`}
+        onClick={() => setNavOpen(false)}
+      />
       <div className="main-content">
-        <Header />
+        <Header onMenuClick={() => setNavOpen(true)} />
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/sellers" element={<SellerList />} />

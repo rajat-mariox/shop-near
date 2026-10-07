@@ -263,7 +263,7 @@ const Product = () => {
   const activeCategory = categories.find((c) => c._id === categoryId);
 
   return (
-    <div style={{ padding: 32, fontFamily: FONT }}>
+    <div className="page-wrap" style={{ padding: 32, fontFamily: FONT }}>
       {/* Header + breadcrumbs */}
       <div style={{ marginBottom: 22 }}>
         <div style={{ fontSize: 24, fontWeight: 600, color: "#2A2A2A", lineHeight: 1.3 }}>
@@ -628,6 +628,7 @@ const Product = () => {
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table
+              className="rt"
               style={{
                 width: "100%",
                 borderCollapse: "separate",

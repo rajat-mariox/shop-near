@@ -6,25 +6,36 @@ import NotificationBell from "../Sidebar/NotificationBell";
  * Slim top header (seller panel jaisa): right side me notification bell aur
  * admin ka naam/avatar. Global search jaan-boojh kar nahi hai.
  */
-const Header = () => {
+const Header = ({ onMenuClick }) => {
   const { admin } = useAuthStore();
   const name = admin?.name || "Admin";
   const email = admin?.email || "admin@shopnear.com";
 
   return (
-    <header
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        gap: 16,
-        padding: "14px 32px",
-        background: "#fff",
-        borderBottom: "1px solid #ececec",
-      }}
-    >
+    <header className="admin-header">
+      {/* Mobile/tablet: hamburger + logo (desktop par CSS se hidden) */}
+      <div className="header-mobile-brand">
+        <button
+          type="button"
+          className="header-menu-btn"
+          aria-label="Open menu"
+          onClick={onMenuClick}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M4 7h16M4 12h16M4 17h10"
+              stroke="#222"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+        <img src="/newLogo.jpeg" alt="AasPass" className="header-logo" />
+        <span className="header-title">AasPass</span>
+      </div>
+      <div style={{ flex: 1 }} />
       <NotificationBell />
-      <div style={{ width: 1, height: 30, background: "#ececec" }} />
+      <div className="header-divider" />
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div
           style={{
@@ -43,7 +54,7 @@ const Header = () => {
         >
           {(name || email).charAt(0).toUpperCase()}
         </div>
-        <div style={{ lineHeight: 1.15 }}>
+        <div className="header-user-text" style={{ lineHeight: 1.15 }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: "#222" }}>{name}</div>
           <div style={{ fontSize: 12, color: "#888" }}>Admin</div>
         </div>

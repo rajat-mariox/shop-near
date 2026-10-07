@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import LocationPicker from "../common/LocationPicker";
+import { searchPlaces, resolvePlace, placeProvider } from "../../utils/placeSearch";
 import {
   getSellerDetail,
   setSellerLocation,
@@ -9,8 +11,8 @@ import {
 } from "../../api/adminApi";
 
 const InfoRow = ({ label, value }) => (
-  <div style={{ display: "flex", marginBottom: 12 }}>
-    <div style={{ width: 160, fontWeight: 500, color: "#888", fontSize: 14 }}>
+  <div className="info-row" style={{ display: "flex", marginBottom: 12 }}>
+    <div className="info-label" style={{ width: 160, flexShrink: 0, fontWeight: 500, color: "#888", fontSize: 14 }}>
       {label}
     </div>
     <div style={{ fontWeight: 600, color: "#333", fontSize: 14 }}>
@@ -31,43 +33,37 @@ const SellerDetail = () => {
   const [locOpen, setLocOpen] = useState(false);
   const [locQuery, setLocQuery] = useState("");
   const [locSuggestions, setLocSuggestions] = useState([]);
+  const [locSearchState, setLocSearchState] = useState("idle"); // idle|loading|done|empty|error
+  const locReq = React.useRef(0);
   const [locCoords, setLocCoords] = useState({ lat: "", lng: "" });
   const [locSaving, setLocSaving] = useState(false);
   const locTimer = React.useRef(null);
 
-  // Photon (OpenStreetMap) autocomplete - free, no key. Seller onboarding wala hi tareeka.
-  // Plain fetch, taaki admin token bahar ke API par na jaye.
+  // Shop search - Google Places (key ho to) warna OpenStreetMap; seller onboarding
+  // wala hi helper. Paas wale results pehle (current pin / seller ki purani location).
   const handleLocQuery = (val) => {
     setLocQuery(val);
     if (locTimer.current) clearTimeout(locTimer.current);
     if (!val || val.trim().length < 3) {
       setLocSuggestions([]);
+      setLocSearchState("idle");
       return;
     }
     locTimer.current = setTimeout(async () => {
+      const reqId = ++locReq.current;
+      setLocSearchState("loading");
+      const lat = parseFloat(locCoords.lat);
+      const lng = parseFloat(locCoords.lng);
+      const near = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
       try {
-        const url =
-          "https://photon.komoot.io/api/?limit=5&lang=en&bbox=68.1,6.5,97.4,35.7&q=" +
-          encodeURIComponent(val.trim());
-        const json = await (await fetch(url)).json();
-        const items = (json.features || [])
-          .map((f) => {
-            const p = f.properties || {};
-            const label = [p.name, p.street, p.district, p.city, p.state, p.postcode]
-              .filter(Boolean)
-              .filter((v, i, arr) => arr.indexOf(v) === i)
-              .join(", ");
-            return {
-              label,
-              city: p.city || p.district || "",
-              lat: f.geometry?.coordinates?.[1],
-              lng: f.geometry?.coordinates?.[0],
-            };
-          })
-          .filter((s) => s.label && s.lat && s.lng);
+        const items = await searchPlaces(val, near);
+        if (reqId !== locReq.current) return;
         setLocSuggestions(items);
+        setLocSearchState(items.length ? "done" : "empty");
       } catch {
+        if (reqId !== locReq.current) return;
         setLocSuggestions([]);
+        setLocSearchState("error");
       }
     }, 350);
   };
@@ -76,13 +72,22 @@ const SellerDetail = () => {
     setLocQuery(seller?.address || "");
     setLocCoords({ lat: seller?.lat ?? "", lng: seller?.lng ?? "" });
     setLocSuggestions([]);
+    setLocSearchState("idle");
     setLocOpen(true);
   };
 
-  const pickLocSuggestion = (s) => {
+  const pickLocSuggestion = async (s) => {
     setLocQuery(s.label);
-    setLocCoords({ lat: s.lat, lng: s.lng, city: s.city });
     setLocSuggestions([]);
+    setLocSearchState("idle");
+    try {
+      const place = await resolvePlace(s);
+      if (place?.lat && place?.lng) {
+        setLocCoords({ lat: place.lat, lng: place.lng, city: place.city });
+      }
+    } catch {
+      alert("Is jagah ki location nahi mili - map par tap karke pin lagao");
+    }
   };
 
   const saveLocation = async () => {
@@ -209,7 +214,7 @@ const SellerDetail = () => {
 
       {/* Header Card */}
       <div
-        className="card"
+        className="card detail-hero"
         style={{ display: "flex", alignItems: "center", gap: 24 }}
       >
         <img
@@ -226,12 +231,13 @@ const SellerDetail = () => {
             objectFit: "cover",
           }}
         />
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 12,
+              flexWrap: "wrap",
+              gap: 8,
               marginBottom: 4,
             }}
           >
@@ -244,7 +250,7 @@ const SellerDetail = () => {
             {seller.email} &middot; {seller.mobile}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="detail-hero-actions" style={{ display: "flex", gap: 10 }}>
           <button
             className="btn btn-outline btn-sm"
             onClick={() => navigate("/sellers")}
@@ -278,7 +284,7 @@ const SellerDetail = () => {
       </div>
 
       {/* Stats */}
-      <div style={{ display: "flex", gap: 20, marginBottom: 24 }}>
+      <div className="detail-stats">
         {[
           { label: "Business Type", value: seller.businessType || "N/A" },
           { label: "City", value: seller.city || "N/A" },
@@ -366,7 +372,7 @@ const SellerDetail = () => {
                   onChange={(e) => handleLocQuery(e.target.value)}
                   autoComplete="off"
                 />
-                {locSuggestions.length > 0 && (
+                {locSearchState !== "idle" && (
                   <div
                     style={{
                       position: "absolute",
@@ -382,18 +388,42 @@ const SellerDetail = () => {
                       overflowY: "auto",
                     }}
                   >
+                    {locSearchState === "loading" && locSuggestions.length === 0 && (
+                      <div style={{ padding: "10px 12px", fontSize: 13, color: "#888" }}>Searching...</div>
+                    )}
                     {locSuggestions.map((s, i) => (
                       <div
-                        key={i}
+                        key={`${s.id || s.label}-${i}`}
                         onClick={() => pickLocSuggestion(s)}
-                        style={{ padding: "8px 12px", cursor: "pointer", fontSize: 13, borderBottom: "1px solid #f3f3f3" }}
+                        style={{ padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid #f3f3f3" }}
                       >
-                        {s.label}
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#222" }}>{s.title || s.label}</div>
+                        {s.subtitle && <div style={{ fontSize: 12, color: "#888" }}>{s.subtitle}</div>}
                       </div>
                     ))}
+                    {(locSearchState === "empty" || locSearchState === "error") && (
+                      <div style={{ padding: "10px 12px", fontSize: 13, color: "#6b4b00", background: "#fff8e6" }}>
+                        {locSearchState === "error" ? "Search abhi kaam nahi kar raha." : "Search me nahi mila."} Neeche map par
+                        tap karke pin lagao.
+                      </div>
+                    )}
+                    {placeProvider === "ola" && locSuggestions.length > 0 && (
+                      <div style={{ padding: "4px 12px", fontSize: 11, color: "#999", textAlign: "right" }}>
+                        Powered by Ola Maps
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
+              <LocationPicker
+                value={
+                  Number.isFinite(parseFloat(locCoords.lat)) && Number.isFinite(parseFloat(locCoords.lng))
+                    ? { lat: parseFloat(locCoords.lat), lng: parseFloat(locCoords.lng) }
+                    : null
+                }
+                onChange={(pt) => setLocCoords((c) => ({ ...c, lat: +pt.lat.toFixed(6), lng: +pt.lng.toFixed(6) }))}
+                height={300}
+              />
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 <input
                   className="form-input"
@@ -421,7 +451,7 @@ const SellerDetail = () => {
                 ) : null}
               </div>
               <div style={{ fontSize: 12, color: "#888" }}>
-                Address search se pin apne aap aata hai. Google Maps se exact lat/lng bhi paste kar sakte ho.
+                Shop search karo, ya map par tap / pin drag karke exact jagah chuno. Google Maps se lat/lng bhi paste kar sakte ho.
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button className="btn btn-primary btn-sm" onClick={saveLocation} disabled={locSaving}>

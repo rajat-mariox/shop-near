@@ -69,7 +69,7 @@ const ProductPopularTable = () => {
         className="table-wrap"
         style={{ border: "1px solid #e7e7e7", borderRadius: 16, overflow: "hidden" }}
       >
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
+        <table className="rt" style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
           <thead>
             <tr style={{ background: "#f6f6f6", borderBottom: "1px solid #e7e7e7" }}>
               <th style={{ ...thStyle, width: "40%" }}>
