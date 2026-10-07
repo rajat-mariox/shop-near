@@ -7,6 +7,7 @@ import {
 } from "../../api/sellerApi";
 
 import icChevronDown from "../../assets/figma/ic-chevron-down.svg";
+import { fitImageToSquare } from "../../utils/fitImage";
 
 const FONT = "'Plus Jakarta Sans', sans-serif";
 
@@ -225,10 +226,19 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
   const categoryAttrs = selectedCategory?.attributes || [];
   const setAttr = (key, value) => setAttrValues((prev) => ({ ...prev, [key]: value }));
 
-  const handleImageChange = (idx, file) => {
-    const imgs = [...newImages];
-    imgs[idx] = file;
-    setNewImages(imgs);
+  // Seller kaisi bhi image daale - 1000x1000 square mein fit (bina crop, white padding)
+  const handleImageChange = async (idx, file) => {
+    if (!file) return;
+    try {
+      const fitted = await fitImageToSquare(file);
+      setNewImages((prev) => {
+        const imgs = [...prev];
+        imgs[idx] = fitted;
+        return imgs;
+      });
+    } catch (err) {
+      alert(err.message || "Could not process image");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -476,7 +486,7 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
             </div>
             <div style={{ fontSize: 12, lineHeight: 1.4, marginTop: 8, color: "#454545" }}>
               <span style={{ fontWeight: 700, color: "#FF6051" }}>Note :</span>
-              {" "}Format photos SVG, PNG, or JPG (Max size 4mb)
+              {" "}Format photos SVG, PNG, or JPG. Images are auto-fitted to a square (nothing gets cropped)
             </div>
           </div>
           <div style={{ display: "flex", gap: 16 }}>
@@ -508,7 +518,10 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
                     type="file"
                     accept=".svg,.png,.jpg,.jpeg"
                     style={{ display: "none" }}
-                    onChange={(e) => handleImageChange(idx, e.target.files[0])}
+                    onChange={(e) => {
+                      handleImageChange(idx, e.target.files[0]);
+                      e.target.value = "";
+                    }}
                   />
                   {preview ? (
                     <img

@@ -211,7 +211,9 @@ const styles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    // contain + white bg: panel image ko square + white padding karta hai, toh kuch katta nahi
+    backgroundColor: '#FFFFFF',
+    resizeMode: 'contain',
   },
   productImageEmpty: {
     backgroundColor: '#F2F2F2',
