@@ -72,6 +72,9 @@ const CartScreen = ({ navigation }) => {
   const [items, setItems] = useState([]);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [discount, setDiscount] = useState(0);
+  // Backend ke totals (coupon/GST/delivery wahi calculate karta hai aur order
+  // bhi isi se banta hai) — screen hamesha yahi dikhaye, local hisaab nahi
+  const [serverTotals, setServerTotals] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cartError, setCartError] = useState(false);
   const [address, setAddress] = useState(null);
@@ -104,6 +107,16 @@ const CartScreen = ({ navigation }) => {
             qty: item.quantity || 1,
           }));
           setItems(apiItems);
+          // Cart dobara khulne par bhi laga hua coupon dikhe (pehle sirf apply
+          // ke waqt local state me rehta tha aur reload par ₹0 dikhta tha)
+          setAppliedCoupon(res.data.appliedCoupon?.code || null);
+          setDiscount(Number(res.data.discountAmount) || 0);
+          setServerTotals({
+            subtotal: Number(res.data.subtotal) || 0,
+            tax: Number(res.data.taxAmount) || 0,
+            delivery: Number(res.data.deliveryCharge) || 0,
+            total: Number(res.data.total) || 0,
+          });
           hasLoadedRef.current = true;
         } else if (!res.success) {
           setCartError(true);
@@ -153,12 +166,15 @@ const CartScreen = ({ navigation }) => {
       setItems(prev => prev.map(i => (i.id === id ? { ...i, qty: item.qty } : i)));
       showToast(result.message || 'Failed to update', 'error');
     }
+    // Qty badalne par coupon discount/GST backend dobara nikalta hai
+    loadCart();
   };
 
   const handleRemove = async (id) => {
     const result = await removeFromCart(id);
     if (result.success) {
       setItems(prev => prev.filter(i => i.id !== id));
+      loadCart();
     } else {
       showToast(result.message || 'Failed to remove', 'error');
     }
@@ -172,6 +188,7 @@ const CartScreen = ({ navigation }) => {
       setAppliedCoupon(code);
       // Backend discountAmount naam se bhejta hai (CartService.applyCoupon)
       setDiscount(result.data?.discountAmount || 0);
+      loadCart();
       setPromoVisible(false);
       // Toast ki jagah figma wala "Applied Coupons" success popup
       setSuccessVisible(true);
@@ -185,6 +202,7 @@ const CartScreen = ({ navigation }) => {
     if (result.success) {
       setAppliedCoupon(null);
       setDiscount(0);
+      loadCart();
     }
   };
 
@@ -206,9 +224,12 @@ const CartScreen = ({ navigation }) => {
     });
   };
 
-  const subTotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const gst = +(subTotal * 0.18).toFixed(2);
-  const grandTotal = subTotal + gst - discount;
+  // Server totals na aaye hon (pehla load / error) tabhi local hisaab
+  const localSub = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const subTotal = serverTotals ? serverTotals.subtotal : localSub;
+  const gst = serverTotals ? serverTotals.tax : +(localSub * 0.18).toFixed(2);
+  const deliveryCharge = serverTotals ? serverTotals.delivery : 0;
+  const grandTotal = serverTotals ? serverTotals.total : localSub + gst - discount;
 
   // Address card — figma: coral border, check icon, "Delivery at (Home)", Change
   const addressCard = (
@@ -283,6 +304,15 @@ const CartScreen = ({ navigation }) => {
           <Text style={styles.billValue}>₹ {gst.toFixed(2)}</Text>
         </View>
         <DashedLine />
+        {deliveryCharge > 0 && (
+          <>
+            <View style={styles.billRow}>
+              <Text style={styles.billLabel}>Delivery</Text>
+              <Text style={styles.billValue}>₹ {deliveryCharge.toFixed(2)}</Text>
+            </View>
+            <DashedLine />
+          </>
+        )}
         <View style={styles.billRow}>
           <Text style={styles.billLabel}>Offer / Coupon</Text>
           <Text style={[styles.billValue, discount > 0 && styles.billDiscount]}>

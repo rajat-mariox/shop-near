@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   AppState,
   Image,
   ImageBackground,
@@ -129,6 +130,10 @@ const Dashboard = (props) => {
   const navigation = props.navigation;
   // Header status bar ke peeche tak jaata hai (onboarding screen ki tarah)
   const insets = useSafeAreaInsets();
+  // Scroll par header status bar ke neeche se nikal jaata hai - tab status bar ke
+  // peeche coral patti fade-in hoti hai, warna safed content par safed icons gayab
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [headerHeight, setHeaderHeight] = useState(0);
   const [userProfile, setUserProfile] = useState(null);
   // Abhi live nahi (camera search) — Coming Soon popup. Wallet aur voice search hata diye gaye.
   const [comingSoon, setComingSoon] = useState(null); // { title, subtitle, icon } | null
@@ -644,10 +649,26 @@ const Dashboard = (props) => {
   return (
     <View style={styles.sectionContainer}>
       <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />
-      <ScrollView
+      {/* Top par tez scroll se list takra kar uchhle (Oppo/ColorOS bounce) to header ke
+          upar safed na dikhe - list ke bilkul top par hone par hi dikhti hai */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.topBackdrop,
+          { opacity: scrollY.interpolate({ inputRange: [0, 2], outputRange: [1, 0], extrapolate: 'clamp' }) },
+        ]}
+      />
+      <Animated.ScrollView
+        overScrollMode="never"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}>
-        {renderHeader()}
+        contentContainerStyle={styles.scrollContent}
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: true,
+        })}>
+        <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+          {renderHeader()}
+        </View>
 
         {loading && (
           <View style={styles.stateBox}>
@@ -673,7 +694,27 @@ const Dashboard = (props) => {
             {renderPromoCodes()}
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
+      {headerHeight > 0 && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.statusBarScrim,
+            {
+              height: insets.top,
+              opacity: scrollY.interpolate({
+                // Header ka text status bar ke neeche aane se pehle hi patti aa jaye
+                inputRange: [
+                  Math.max(0, headerHeight * 0.15 - insets.top),
+                  Math.max(1, headerHeight * 0.15),
+                ],
+                outputRange: [0, 1],
+                extrapolate: 'clamp',
+              }),
+            },
+          ]}
+        />
+      )}
       <ComingSoonModal
         visible={!!comingSoon}
         onClose={() => setComingSoon(null)}

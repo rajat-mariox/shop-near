@@ -25,6 +25,24 @@ import icPageNext from "../../assets/figma/ic-page-next.svg";
 
 const FONT = "'Plus Jakarta Sans', sans-serif";
 
+/* Backend `deliveryAddress` bhejta hai (order snapshot ya purane order ka addressId) */
+const getAddr = (order) => order.deliveryAddress || null;
+// Deleted account ka mobileNumber "del_..." placeholder hota hai — woh phone nahi hai
+const getPhone = (order) => {
+  const p = getAddr(order)?.mobile || order.userId?.mobileNumber || "";
+  return /^\+?\d/.test(p) ? p : "";
+};
+const fullAddressText = (a) =>
+  a
+    ? [a.address, a.city, a.state].filter(Boolean).join(", ") + (a.pinCode ? ` - ${a.pinCode}` : "")
+    : "";
+// Free Google Maps link (koi API key nahi) — coords ho to exact pin, warna address search
+const mapsUrl = (a) =>
+  a.lat != null && a.lng != null
+    ? `https://www.google.com/maps/search/?api=1&query=${a.lat},${a.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddressText(a))}`;
+const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
 const STATUS_MAP = {
   0: { label: "All Orders", value: "" },
   1: { label: "Pending", value: "pending" },
@@ -370,23 +388,28 @@ const Transaction = () => {
         return (
           o.orderId?.toLowerCase().includes(q) ||
           prodName.toLowerCase().includes(q) ||
-          custName.toLowerCase().includes(q)
+          custName.toLowerCase().includes(q) ||
+          getPhone(o).includes(q) ||
+          fullAddressText(getAddr(o)).toLowerCase().includes(q)
         );
       })
     : orders;
 
   const handleExport = () => {
-    const header = ["Order ID", "Customer", "Product", "Amount", "Payment Status", "Status", "Date"];
+    const header = ["Order ID", "Customer", "Phone", "Delivery Address", "Product", "Amount", "Payment Status", "Status", "Date"];
     const rows = displayOrders.map((o) => [
       o.orderId || "",
       o.userId?.fullName || "",
+      getPhone(o),
+      fullAddressText(getAddr(o)),
       o.products?.[0]?.productName || "",
       o.grandTotal || 0,
       o.paymentStatus || "",
       getSellerStatus(o),
       o.createdAt ? new Date(o.createdAt).toISOString() : "",
     ]);
-    const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
+    // Address me comma hote hain — har cell quote karo
+    const csv = [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -746,7 +769,17 @@ const Transaction = () => {
                         </div>
                       </td>
                       <td style={{ ...tdStyle, fontWeight: 500 }}>
-                        {order.userId?.fullName || "-"}
+                        <div>{order.userId?.fullName || getAddr(order)?.fullName || "-"}</div>
+                        {getPhone(order) && (
+                          <div style={{ fontSize: 12, color: "#888", fontWeight: 400 }}>
+                            {getPhone(order)}
+                          </div>
+                        )}
+                        {getAddr(order) && (
+                          <div style={{ fontSize: 12, color: "#888", fontWeight: 400 }}>
+                            {[getAddr(order).city, getAddr(order).pinCode].filter(Boolean).join(" - ")}
+                          </div>
+                        )}
                       </td>
                       <td style={{ ...tdStyle, fontWeight: 500 }}>
                         ₹{order.grandTotal?.toLocaleString("en-IN") || "0"}
@@ -1145,7 +1178,7 @@ const Transaction = () => {
               background: "#fff",
               borderRadius: 16,
               padding: 28,
-              minWidth: 440,
+              minWidth: "min(440px, 92vw)",
               maxWidth: 520,
               maxHeight: "80vh",
               overflowY: "auto",
@@ -1181,6 +1214,92 @@ const Transaction = () => {
                 {actionModal.order.deliveryAgent.mobile})
               </p>
             )}
+            <h4 style={{ marginTop: 14, marginBottom: 8 }}>Delivery Address</h4>
+            {(() => {
+              const a = getAddr(actionModal.order);
+              if (!a) {
+                return (
+                  <p style={{ fontSize: 13, color: "#B00020" }}>
+                    Address not available (customer ne yeh address delete kar diya hai)
+                  </p>
+                );
+              }
+              const phone = getPhone(actionModal.order);
+              return (
+                <div
+                  style={{
+                    padding: 12,
+                    border: "1px solid #ececec",
+                    borderRadius: 8,
+                    background: "#FAFAFA",
+                    fontSize: 14,
+                    color: "#454545",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <strong>{a.fullName || actionModal.order.userId?.fullName || "-"}</strong>
+                    {a.addressType && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          padding: "1px 8px",
+                          borderRadius: 10,
+                          background: "#FFE9E7",
+                          color: "#FF6051",
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        {a.addressType}
+                      </span>
+                    )}
+                  </div>
+                  {phone && (
+                    <div>
+                      Phone:{" "}
+                      <a href={`tel:${phone}`} style={{ color: "#FF6051" }}>
+                        {phone}
+                      </a>
+                    </div>
+                  )}
+                  <div style={{ wordBreak: "break-word" }}>{a.address}</div>
+                  <div>
+                    {[a.city, a.state].filter(Boolean).join(", ")}
+                    {a.pinCode && ` - ${a.pinCode}`}
+                  </div>
+                  <div style={{ display: "flex", gap: 14, marginTop: 6, flexWrap: "wrap" }}>
+                    <a
+                      href={mapsUrl(a)}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: "#FF6051", fontWeight: 600, fontSize: 13 }}
+                    >
+                      Open in Maps
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigator.clipboard?.writeText(
+                          [a.fullName, phone, fullAddressText(a)].filter(Boolean).join("\n")
+                        )
+                      }
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        color: "#FF6051",
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        fontFamily: FONT,
+                      }}
+                    >
+                      Copy address
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
             <h4 style={{ marginTop: 14, marginBottom: 8 }}>Products</h4>
             {actionModal.order.products?.map((p, i) => (
               <div
@@ -1215,6 +1334,13 @@ const Transaction = () => {
                   <div style={{ fontWeight: 600, fontSize: 13 }}>
                     {p.productName}
                   </div>
+                  {(p.size || p.color) && (
+                    <div style={{ fontSize: 12, color: "#888" }}>
+                      {[p.size && `Size: ${p.size}`, p.color && `Color: ${p.color}`]
+                        .filter(Boolean)
+                        .join(" | ")}
+                    </div>
+                  )}
                   <div style={{ fontSize: 12, color: "#888" }}>
                     Qty: {p.quantity} × ₹{p.unitPrice} = ₹{p.totalPrice}
                   </div>

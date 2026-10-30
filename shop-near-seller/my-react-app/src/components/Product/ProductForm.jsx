@@ -60,6 +60,27 @@ const Field = ({ label, children }) => (
   </div>
 );
 
+// Backend MAX_PRODUCT_IMAGES ke barabar
+const MAX_IMAGES = 10;
+// Upload se pehle har photo is size ke square me fit hoti hai
+const IMAGE_SIZE = 1500;
+
+const thumbBtn = {
+  width: 24,
+  height: 24,
+  borderRadius: 12,
+  border: "none",
+  background: "rgba(0,0,0,0.6)",
+  color: "#fff",
+  fontSize: 14,
+  lineHeight: "24px",
+  padding: 0,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
 const ImageIcon = () => (
   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF6051" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
     <rect x="4" y="4" width="16" height="16" rx="2" />
@@ -157,8 +178,10 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
   const [loading, setLoading] = useState(isEdit);
   // Category-specific field values: { [attr.key]: value }
   const [attrValues, setAttrValues] = useState({});
-  const [existingImages, setExistingImages] = useState([]);
-  const [newImages, setNewImages] = useState([null, null, null, null]);
+  // Ordered photo list: { key, url } (pehle se uploaded) ya { key, file, preview } (nayi).
+  // Pehli photo cover hai (app listing me wahi dikhti hai)
+  const [images, setImages] = useState([]);
+  const [processingImages, setProcessingImages] = useState(false);
 
   const [form, setForm] = useState({
     productName: "",
@@ -199,11 +222,15 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
           stock: p.stock ?? "",
           isActive: String(p.isActive ?? true),
         });
-        setExistingImages((p.productImages || []).map((i) => i.url || i));
+        setImages(
+          (p.productImages || [])
+            .map((i) => i.url || i)
+            .filter(Boolean)
+            .map((url, i) => ({ key: `old-${i}-${url}`, url })),
+        );
         setAttrValues(
           Object.fromEntries((p.attributes || []).map((a) => [a.key, a.value])),
         );
-        setNewImages([null, null, null, null]);
       })
       .catch(() => alert("Failed to load product"))
       .finally(() => setLoading(false));
@@ -226,20 +253,51 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
   const categoryAttrs = selectedCategory?.attributes || [];
   const setAttr = (key, value) => setAttrValues((prev) => ({ ...prev, [key]: value }));
 
-  // Seller kaisi bhi image daale - 1000x1000 square mein fit (bina crop, white padding)
-  const handleImageChange = async (idx, file) => {
-    if (!file) return;
+  // Seller kaisi bhi image daale - square mein fit (bina crop, white padding).
+  // Ek saath kai photos select ho sakti hain, MAX_IMAGES tak.
+  const handleAddImages = async (fileList) => {
+    const room = MAX_IMAGES - images.length;
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    if (files.length > room) {
+      alert(`You can add up to ${MAX_IMAGES} photos. Only the first ${room} will be added.`);
+    }
+    setProcessingImages(true);
     try {
-      const fitted = await fitImageToSquare(file);
-      setNewImages((prev) => {
-        const imgs = [...prev];
-        imgs[idx] = fitted;
-        return imgs;
-      });
+      const added = [];
+      for (const file of files.slice(0, room)) {
+        // 1500px: app me zoom karne par bhi detail saaf dikhe (pehle 1000px tha)
+        const fitted = await fitImageToSquare(file, IMAGE_SIZE);
+        added.push({
+          key: `new-${Date.now()}-${Math.random()}`,
+          file: fitted,
+          preview: URL.createObjectURL(fitted),
+        });
+      }
+      setImages((prev) => [...prev, ...added].slice(0, MAX_IMAGES));
     } catch (err) {
       alert(err.message || "Could not process image");
+    } finally {
+      setProcessingImages(false);
     }
   };
+
+  const removeImage = (key) =>
+    setImages((prev) => {
+      const img = prev.find((i) => i.key === key);
+      if (img?.preview) URL.revokeObjectURL(img.preview);
+      return prev.filter((i) => i.key !== key);
+    });
+
+  // Photo ko ek jagah aage/peeche karo (dir -1 / +1); index 0 = cover
+  const moveImage = (idx, dir) =>
+    setImages((prev) => {
+      const to = idx + dir;
+      if (to < 0 || to >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[to]] = [next[to], next[idx]];
+      return next;
+    });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -269,8 +327,10 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
       if (!isEmpty(attrValues[a.key])) attrPayload[a.key] = attrValues[a.key];
     });
     fd.append("attributes", JSON.stringify(attrPayload));
-    newImages.forEach((f) => {
-      if (f) fd.append("productImages", f);
+    // Backend ko final order: purani photo ka url ya "new" (files isi order me)
+    fd.append("imageOrder", JSON.stringify(images.map((i) => (i.file ? "new" : i.url))));
+    images.forEach((i) => {
+      if (i.file) fd.append("productImages", i.file);
     });
     setSaving(true);
     try {
@@ -486,60 +546,130 @@ const ProductForm = ({ productId, categories, onClose, onSaved }) => {
             </div>
             <div style={{ fontSize: 12, lineHeight: 1.4, marginTop: 8, color: "#454545" }}>
               <span style={{ fontWeight: 700, color: "#FF6051" }}>Note :</span>
-              {" "}Format photos SVG, PNG, or JPG. Images are auto-fitted to a square (nothing gets cropped)
+              {" "}Format photos SVG, PNG, or JPG. Add up to {MAX_IMAGES} photos from different
+              angles. Images are auto-fitted to a square (nothing gets cropped). The first photo is
+              the cover.
             </div>
           </div>
-          <div style={{ display: "flex", gap: 16 }}>
-            {[0, 1, 2, 3].map((idx) => {
-              const preview = newImages[idx]
-                ? URL.createObjectURL(newImages[idx])
-                : existingImages[idx] || null;
-              return (
-                <label
-                  key={idx}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {images.map((img, idx) => (
+              <div
+                key={img.key}
+                style={{
+                  position: "relative",
+                  borderRadius: 8,
+                  overflow: "hidden",
+                  aspectRatio: "1 / 1",
+                  border: idx === 0 ? "2px solid #FF6051" : "1px solid #E7E7E7",
+                  background: "#fff",
+                }}
+              >
+                <img
+                  src={img.preview || img.url}
+                  alt=""
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                />
+                {idx === 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 4,
+                      top: 4,
+                      background: "#FF6051",
+                      color: "#fff",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      borderRadius: 4,
+                      padding: "1px 6px",
+                    }}
+                  >
+                    Cover
+                  </span>
+                )}
+                <button
+                  type="button"
+                  title="Remove photo"
+                  onClick={() => removeImage(img.key)}
+                  style={{ ...thumbBtn, position: "absolute", right: 4, top: 4 }}
+                >
+                  ×
+                </button>
+                <div
                   style={{
-                    flex: 1,
-                    minWidth: 0,
-                    background: "#FFF2F0",
-                    border: "1px dashed #FF6051",
-                    borderRadius: 8,
-                    padding: preview ? 0 : 20,
+                    position: "absolute",
+                    left: 4,
+                    right: 4,
+                    bottom: 4,
                     display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    cursor: "pointer",
-                    overflow: "hidden",
-                    aspectRatio: "1 / 1",
+                    justifyContent: "space-between",
                   }}
                 >
-                  <input
-                    type="file"
-                    accept=".svg,.png,.jpg,.jpeg"
-                    style={{ display: "none" }}
-                    onChange={(e) => {
-                      handleImageChange(idx, e.target.files[0]);
-                      e.target.value = "";
+                  <button
+                    type="button"
+                    title="Move left"
+                    disabled={idx === 0}
+                    onClick={() => moveImage(idx, -1)}
+                    style={{ ...thumbBtn, visibility: idx === 0 ? "hidden" : "visible" }}
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    title="Move right"
+                    disabled={idx === images.length - 1}
+                    onClick={() => moveImage(idx, 1)}
+                    style={{
+                      ...thumbBtn,
+                      visibility: idx === images.length - 1 ? "hidden" : "visible",
                     }}
-                  />
-                  {preview ? (
-                    <img
-                      src={preview}
-                      alt=""
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                  ) : (
-                    <>
-                      <ImageIcon />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#737373", lineHeight: 1.4 }}>
-                        Photo {idx + 1}
-                      </span>
-                    </>
-                  )}
-                </label>
-              );
-            })}
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
+            ))}
+            {images.length < MAX_IMAGES && (
+              <label
+                style={{
+                  background: "#FFF2F0",
+                  border: "1px dashed #FF6051",
+                  borderRadius: 8,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  cursor: processingImages ? "wait" : "pointer",
+                  aspectRatio: "1 / 1",
+                  textAlign: "center",
+                }}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept=".svg,.png,.jpg,.jpeg"
+                  style={{ display: "none" }}
+                  disabled={processingImages}
+                  onChange={(e) => {
+                    handleAddImages(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                <ImageIcon />
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#737373", lineHeight: 1.3 }}>
+                  {processingImages ? "Processing..." : "Add photos"}
+                </span>
+                <span style={{ fontSize: 11, color: "#999" }}>
+                  {images.length}/{MAX_IMAGES}
+                </span>
+              </label>
+            )}
           </div>
         </div>
 

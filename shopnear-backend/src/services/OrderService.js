@@ -123,10 +123,10 @@ module.exports = () => {
       };
 
       let orm = UserOrders.find(searchQuery)
-        .populate("userId", "fullName email mobileNumber")
+        .populate("userId", "fullName email mobileNumber countryCode")
         .populate(
           "addressId",
-          "fullName address city state pinCode phoneNumber"
+          "fullName address city state pinCode mobile addressType lat lng"
         )
         .populate("products.productId", "productName productImages")
         .populate("products.sellerId", "shopName")

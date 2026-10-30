@@ -133,7 +133,9 @@ const LoginScreen = (props) => {
           showToast('Welcome back! Your account has been recovered.', 'success');
         }
         await askLocationPermission();
-        navigation.navigate('Home');
+        // Login/Landing stack se hata do, warna Home par back dabane se
+        // OTP screen wapas aa jaati thi aur user ko lagta tha logout ho gaya
+        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
       } else {
         showToast(data.message || 'Incorrect OTP, try again!', 'error');
       }

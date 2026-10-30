@@ -8,6 +8,66 @@ const { isValidCoords } = require("../util/geo");
 const fileUploadService = require("../util/s3");
 var ObjectId = require("mongoose").Types.ObjectId;
 
+// Seller ek product me itni photos daal sakta hai
+const MAX_PRODUCT_IMAGES = 10;
+
+const uploadProductFiles = async (files) => {
+  const out = [];
+  for (const file of files) {
+    const uploadRes = await fileUploadService.uploadFileToAws(file);
+    if (Array.isArray(uploadRes.images)) {
+      uploadRes.images.forEach((url) => out.push({ url }));
+    } else {
+      out.push({ url: uploadRes.images });
+    }
+  }
+  return out;
+};
+
+/**
+ * Product ki final image list. Seller panel `imageOrder` (JSON array) bhejta hai:
+ * har item ya to purani photo ka url hai ya "new" (agli uploaded file). Isse
+ * seller photos hata / aage-peeche kar sakta hai, aur ek photo badalne par baaki
+ * purani photos nahi mitti. imageOrder na aaye (purana client) to pehle jaisa:
+ * nayi files hi poori list. undefined = images me koi change nahi.
+ */
+const buildProductImages = async ({ files, imageOrder, currentUrls = [] }) => {
+  let order = null;
+  try {
+    order = typeof imageOrder === "string" ? JSON.parse(imageOrder) : imageOrder;
+  } catch (e) {
+    order = null;
+  }
+  if (!Array.isArray(order)) {
+    if (!files.length) return undefined;
+    return uploadProductFiles(files.slice(0, MAX_PRODUCT_IMAGES));
+  }
+  if (order.length > MAX_PRODUCT_IMAGES) {
+    throw new Error(`You can upload up to ${MAX_PRODUCT_IMAGES} images per product`);
+  }
+  const newCount = order.filter((item) => item === "new").length;
+  const uploaded = await uploadProductFiles(files.slice(0, newCount));
+  // Sirf isi product ki purani photos rakh sakte hain (koi bahar ka url nahi)
+  const allowed = new Set(currentUrls);
+  const result = [];
+  let next = 0;
+  for (const item of order) {
+    if (item === "new") {
+      if (uploaded[next]) result.push(uploaded[next]);
+      next++;
+    } else if (typeof item === "string" && allowed.has(item)) {
+      result.push({ url: item });
+    }
+  }
+  return result;
+};
+
+const filesOf = (req, field) => {
+  const f = req.files && req.files[field];
+  if (!f) return [];
+  return Array.isArray(f) ? f : [f];
+};
+
 // simple regex escape (similar to used in UserController)
 const RegexEscape = (s) =>
   s ? s.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&") : s;
@@ -536,25 +596,22 @@ module.exports = () => {
     }
 
     let productData = { ...req.body };
+    delete productData.imageOrder;
     productData.shopId = new ObjectId(finalSellerId);
 
-    // Handle product images
-    if (req.files && req.files.productImages) {
-      const files = Array.isArray(req.files.productImages)
-        ? req.files.productImages
-        : [req.files.productImages];
-
-      let imagesArr = [];
-      for (const file of files) {
-        const uploadRes = await fileUploadService.uploadFileToAws(file);
-        if (Array.isArray(uploadRes.images)) {
-          uploadRes.images.forEach((url) => imagesArr.push({ url }));
-        } else {
-          imagesArr.push({ url: uploadRes.images });
-        }
-      }
-      productData.productImages = imagesArr;
+    // Handle product images (max MAX_PRODUCT_IMAGES, seller ke order me)
+    let images;
+    try {
+      images = await buildProductImages({
+        files: filesOf(req, "productImages"),
+        imageOrder: req.body.imageOrder,
+      });
+    } catch (e) {
+      req.rCode = 0;
+      req.msg = e.message;
+      return next();
     }
+    if (images) productData.productImages = images;
 
     // Handle description images
     if (req.files && req.files.descriptionImages) {
@@ -618,24 +675,26 @@ module.exports = () => {
 
     let updateData = { ...req.body };
     delete updateData.sellerId;
+    delete updateData.imageOrder;
 
-    // Handle product images
-    if (req.files && req.files.productImages) {
-      const files = Array.isArray(req.files.productImages)
-        ? req.files.productImages
-        : [req.files.productImages];
-
-      let imagesArr = [];
-      for (const file of files) {
-        const uploadRes = await fileUploadService.uploadFileToAws(file);
-        if (Array.isArray(uploadRes.images)) {
-          uploadRes.images.forEach((url) => imagesArr.push({ url }));
-        } else {
-          imagesArr.push({ url: uploadRes.images });
-        }
-      }
-      updateData.productImages = imagesArr;
+    // Handle product images: purani rakhi hui + nayi, seller ke order me
+    const current = await Products.findOne({
+      _id: new ObjectId(id),
+      shopId: new ObjectId(finalSellerId),
+    }).select("productImages");
+    let images;
+    try {
+      images = await buildProductImages({
+        files: filesOf(req, "productImages"),
+        imageOrder: req.body.imageOrder,
+        currentUrls: (current?.productImages || []).map((i) => i.url),
+      });
+    } catch (e) {
+      req.rCode = 0;
+      req.msg = e.message;
+      return next();
     }
+    if (images) updateData.productImages = images;
 
     // Handle description images
     if (req.files && req.files.descriptionImages) {

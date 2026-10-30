@@ -33,13 +33,17 @@ const menu = [
 ];
 
 const MyProfileScreen = ({ navigation }) => {
+  // Poora stack reset: Home peeche na bache, warna Login se back dabane par
+  // bina token ke Home khul jaata tha
+  const goToLogin = () => {
+    navigation.reset({ index: 1, routes: [{ name: 'Landing' }, { name: 'Login' }] });
+  };
+
   // Logout handler
   const handleLogout = async () => {
     await clearStorage();
     clearWishlistStore();
-    if (navigation && navigation.replace) {
-      navigation.replace('Login');
-    }
+    goToLogin();
   };
 
   const [userProfile, setUserProfile] = useState(null);
@@ -57,13 +61,12 @@ const MyProfileScreen = ({ navigation }) => {
     if (result.success) {
       setDeleteVisible(false);
       await clearStorage();
+      clearWishlistStore();
       showToast(
         'Your account will be permanently deleted after 7 days. Log in within 7 days to recover it.',
         'success',
       );
-      if (navigation && navigation.replace) {
-        navigation.replace('Login');
-      }
+      goToLogin();
     } else {
       showToast(result.message, 'error');
     }
