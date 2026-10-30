@@ -10,15 +10,9 @@ import { refreshWishlist, toggleWishlist, useWishlistIds } from '../../utils/wis
 import { showToast } from '../../utils/toast';
 import { scale, verticalScale, moderateScale, fontScale } from '../../utils/responsive';
 import ScreenHeader from '../../components/ScreenHeader';
+import ImageViewer from '../../components/ImageViewer';
 
-// Category-specific field value ko dikhane layak text me badlo
-// (boolean -> Yes/No, multiselect -> comma list, number -> unit ke saath)
-const formatAttrValue = (a) => {
-  if (a.type === 'boolean' || typeof a.value === 'boolean') return a.value ? 'Yes' : 'No';
-  if (Array.isArray(a.value)) return a.value.join(', ');
-  const v = a.value === undefined || a.value === null ? '' : String(a.value);
-  return a.unit ? `${v} ${a.unit}` : v;
-};
+import { formatAttrValue } from '../../utils/productAttributes';
 
 const THEME_COLOR = Colors.theme1;
 // Accept productId as prop (from navigation)
@@ -34,6 +28,9 @@ const ProductDetailScreen = ({ route, navigation }) => {
   const [reviews, setReviews] = useState(null);
   // Review photo full-screen viewer (tap on thumbnail)
   const [viewerImage, setViewerImage] = useState(null);
+  // Product photos: carousel width (onLayout) + full-screen zoom viewer
+  const [carouselWidth, setCarouselWidth] = useState(0);
+  const [galleryIndex, setGalleryIndex] = useState(null);
 
   // Get productId from navigation params
   const productId = route?.params?.productId;
@@ -80,6 +77,12 @@ const ProductDetailScreen = ({ route, navigation }) => {
     );
     setCarouselIndex(index);
   };
+
+  const photoUrls = (product?.productImages || [])
+    .map((img) => (typeof img === 'string' ? img : img?.url))
+    .filter(Boolean);
+  // Photos square hoti hain (seller panel fit karta hai) - square frame, bahut lambi screen par cap
+  const carouselHeight = Math.min(carouselWidth, Dimensions.get('window').height * 0.5);
 
   const [cartLoading, setCartLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -199,50 +202,76 @@ const ProductDetailScreen = ({ route, navigation }) => {
                      color={isWishlisted ? '#E33C84' : '#fff'}
                    />
                  </TouchableOpacity>
-                <ScrollView
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  style={{ width: '100%', height: verticalScale(150) }}
-                  onScroll={handleScroll}
-                  scrollEventThrottle={16}
-                >
-                  {(product?.productImages && product?.productImages.length > 0
-                    ? product?.productImages.map((img, idx) => (
-                      <Image
-                        key={img._id || idx}
-                        source={{ uri: img.url }}
+                <View onLayout={(e) => setCarouselWidth(e.nativeEvent.layout.width)}>
+                  {carouselWidth > 0 && (
+                    <ScrollView
+                      horizontal
+                      pagingEnabled
+                      showsHorizontalScrollIndicator={false}
+                      style={{ width: carouselWidth, height: carouselHeight }}
+                      onScroll={handleScroll}
+                      scrollEventThrottle={16}
+                    >
+                      {photoUrls.length > 0
+                        ? photoUrls.map((uri, idx) => (
+                          <TouchableOpacity
+                            key={`${idx}-${uri}`}
+                            activeOpacity={0.9}
+                            onPress={() => setGalleryIndex(idx)}
+                          >
+                            <Image
+                              source={{ uri }}
+                              style={{
+                                width: carouselWidth,
+                                height: carouselHeight,
+                                borderRadius: moderateScale(16),
+                                backgroundColor: '#fff',
+                              }}
+                              resizeMode="contain"
+                            />
+                          </TouchableOpacity>
+                        ))
+                        : [<Image key={0} source={AppImages.sportswear} style={{ width: carouselWidth, height: carouselHeight, borderRadius: moderateScale(16) }} resizeMode="contain" />]}
+                    </ScrollView>
+                  )}
+                  {photoUrls.length > 0 && (
+                    <TouchableOpacity
+                      style={styles.zoomBadge}
+                      activeOpacity={0.8}
+                      onPress={() => setGalleryIndex(carouselIndex)}
+                    >
+                      <AntDesign name="search1" size={moderateScale(13)} color="#fff" />
+                      <Text style={styles.zoomBadgeText}>
+                        {photoUrls.length > 1 ? `${carouselIndex + 1}/${photoUrls.length}` : 'Zoom'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                {/* Dots Indicator */}
+                {photoUrls.length > 1 && (
+                  <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: verticalScale(8), height: verticalScale(16) }}>
+                    {photoUrls.map((_, idx) => (
+                      <View
+                        key={idx}
                         style={{
-                          width: scale(350),
-                          height: verticalScale(150),
-                          borderRadius: moderateScale(16),
-                          marginRight: idx !== product?.productImages.length - 1 ? scale(10) : 0,
-                          resizeMode: 'contain',
+                          width: moderateScale(8),
+                          height: moderateScale(8),
+                          borderRadius: moderateScale(4),
+                          backgroundColor: carouselIndex === idx ? '#E33C84' : '#E0E0E0',
+                          marginRight: scale(8),
+                          marginTop: verticalScale(4),
                         }}
                       />
-                    ))
-                    : [<Image key={0} source={AppImages.sportswear} style={{ width: scale(350), height: verticalScale(150), borderRadius: moderateScale(16), resizeMode: 'contain' }} />])}
-                </ScrollView>
-                {/* Dots Indicator */}
-                <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: verticalScale(8), height: verticalScale(16) }}>
-                  {(product?.productImages && product?.productImages.length > 0
-                    ? product?.productImages
-                    : [1, 2, 3]
-                  ).map((_, idx) => (
-                    <View
-                      key={idx}
-                      style={{
-                        width: moderateScale(8),
-                        height: moderateScale(8),
-                        borderRadius: moderateScale(4),
-                        backgroundColor: carouselIndex === idx ? '#E33C84' : '#E0E0E0',
-                        marginRight: scale(8),
-                        marginTop: verticalScale(15)
-                      }}
-                    />
-                  ))}
-                </View>
+                    ))}
+                  </View>
+                )}
               </View>
+              <ImageViewer
+                visible={galleryIndex !== null}
+                images={photoUrls}
+                initialIndex={galleryIndex || 0}
+                onClose={() => setGalleryIndex(null)}
+              />
               {/* Product Info */}
               <View style={{ marginTop: verticalScale(15), }}>
                 <Text style={{ fontSize: fontScale(22), fontWeight: 'bold', color: '#222', marginBottom: verticalScale(2) }}>{product?.productName}</Text>
@@ -563,6 +592,20 @@ const ProductDetailScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  // Carousel ke kone me: photo number + tap karke full-screen zoom
+  zoomBadge: {
+    position: 'absolute',
+    right: scale(10),
+    bottom: verticalScale(10),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: moderateScale(12),
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(4),
+  },
+  zoomBadgeText: { color: '#fff', fontSize: fontScale(12), fontWeight: '600', fontFamily: 'sans-serif' },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',

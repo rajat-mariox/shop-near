@@ -16,6 +16,20 @@ const UserOrdersSchema = new Schema(
       required: true,
     },
 
+    // Order ke time ka address snapshot — customer baad me address edit/delete
+    // kare (UserAddress hard delete hota hai) to bhi seller ko sahi address dikhe
+    shippingAddress: {
+      fullName: { type: String },
+      mobile: { type: String },
+      address: { type: String },
+      city: { type: String },
+      state: { type: String },
+      pinCode: { type: String },
+      addressType: { type: String },
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+    },
+
     // ---------------- ORDER ITEMS ----------------
     products: [
       {

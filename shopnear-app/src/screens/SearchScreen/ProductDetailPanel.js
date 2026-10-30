@@ -21,6 +21,8 @@ import {
 } from '../../service/cartService';
 import { Colors } from '../../themes/Colors';
 import { fontScale, moderateScale } from '../../utils/responsive';
+import { formatAttrValue, visibleAttributes } from '../../utils/productAttributes';
+import ImageViewer from '../../components/ImageViewer';
 
 // Figma "Product Details" (node 26:2105) — right panel jo product par click
 // karne se grid ki jagah khulta hai. Poora data backend se aata hai.
@@ -72,21 +74,29 @@ const TealStars = ({ rating = 0, size = 14 }) => (
   </View>
 );
 
-// Image slider — product ki saari images auto-slide hoti hain, dots ke saath
-const DetailImageSlider = ({ urls }) => {
+// Image slider — auto-slide hoti hai; user haath se swipe kare to auto-slide ruk
+// jaati hai. Photo tap karne par full-screen zoom viewer (onOpen) khulta hai.
+const DetailImageSlider = ({ urls, onOpen }) => {
   const scrollRef = useRef(null);
   const indexRef = useRef(0);
   const [activeDot, setActiveDot] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
 
   useEffect(() => {
-    if (urls.length < 2) return undefined;
+    if (urls.length < 2 || !autoPlay) return undefined;
     const timer = setInterval(() => {
       indexRef.current = (indexRef.current + 1) % urls.length;
       scrollRef.current?.scrollTo({ x: indexRef.current * PANEL_W, animated: true });
       setActiveDot(indexRef.current);
     }, 2500);
     return () => clearInterval(timer);
-  }, [urls.length]);
+  }, [urls.length, autoPlay]);
+
+  const onMomentumEnd = (e) => {
+    const i = Math.round(e.nativeEvent.contentOffset.x / PANEL_W);
+    indexRef.current = i;
+    setActiveDot(i);
+  };
 
   return (
     <View style={styles.imageArea}>
@@ -94,10 +104,13 @@ const DetailImageSlider = ({ urls }) => {
         ref={scrollRef}
         horizontal
         pagingEnabled
-        scrollEnabled={false}
-        showsHorizontalScrollIndicator={false}>
+        showsHorizontalScrollIndicator={false}
+        onScrollBeginDrag={() => setAutoPlay(false)}
+        onMomentumScrollEnd={onMomentumEnd}>
         {urls.map((url, i) => (
-          <Image key={i} source={{ uri: url }} style={styles.heroImage} />
+          <TouchableOpacity key={i} activeOpacity={0.9} onPress={() => onOpen?.(i)}>
+            <Image source={{ uri: url }} style={styles.heroImage} />
+          </TouchableOpacity>
         ))}
       </ScrollView>
       {urls.length > 1 ? (
@@ -107,6 +120,15 @@ const DetailImageSlider = ({ urls }) => {
           ))}
         </View>
       ) : null}
+      <TouchableOpacity
+        style={styles.zoomBadge}
+        activeOpacity={0.8}
+        onPress={() => onOpen?.(indexRef.current)}>
+        <AntDesign name="search1" size={moderateScale(12)} color="#fff" />
+        <Text style={styles.zoomBadgeText}>
+          {urls.length > 1 ? `${activeDot + 1}/${urls.length}` : 'Zoom'}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -132,6 +154,9 @@ const ProductDetailPanel = ({ productId, similar = [], onSelectProduct }) => {
   const [descOpen, setDescOpen] = useState(true);
   const [descExpanded, setDescExpanded] = useState(false);
   const [reviewsOpen, setReviewsOpen] = useState(true);
+  const [specsOpen, setSpecsOpen] = useState(true);
+  // Full-screen zoom viewer (null = band)
+  const [viewerIndex, setViewerIndex] = useState(null);
   const [adding, setAdding] = useState(false);
   // Product cart me ho to yahan uski entry rehti hai {id, qty} — isi se
   // "Add To Cart" ki jagah quantity stepper dikhta hai
@@ -227,10 +252,17 @@ const ProductDetailPanel = ({ productId, similar = [], onSelectProduct }) => {
   const distribution = ratingData?.distribution || {};
   const reviews = ratingData?.ratings || [];
   const similarProducts = similar.filter((p) => p._id !== productId).slice(0, 8);
+  const specs = visibleAttributes(detail.attributes);
 
   return (
     <View style={styles.panel}>
-      {images?.length ? <DetailImageSlider urls={images} /> : null}
+      {images?.length ? <DetailImageSlider urls={images} onOpen={setViewerIndex} /> : null}
+      <ImageViewer
+        visible={viewerIndex !== null}
+        images={images || []}
+        initialIndex={viewerIndex || 0}
+        onClose={() => setViewerIndex(null)}
+      />
 
       {/* Naam + price + stars */}
       <View style={styles.titleRow}>
@@ -305,6 +337,29 @@ const ProductDetailPanel = ({ productId, similar = [], onSelectProduct }) => {
             ) : null}
           </View>
           <View style={styles.divider} />
+        </>
+      ) : null}
+
+      {/* Specifications — admin ke category fields (Size, Material...) jo seller ne bhare */}
+      {specs.length ? (
+        <>
+          <SectionHeader
+            title="Specifications"
+            open={specsOpen}
+            onToggle={() => setSpecsOpen((v) => !v)}
+          />
+          {specsOpen ? (
+            <View style={styles.sectionBody}>
+              {specs.map((a, i) => (
+                <View
+                  key={a.key || i}
+                  style={[styles.specRow, i === specs.length - 1 && styles.specRowLast]}>
+                  <Text style={styles.specLabel}>{a.label}</Text>
+                  <Text style={styles.specValue}>{formatAttrValue(a)}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </>
       ) : null}
 
@@ -513,6 +568,50 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     backgroundColor: '#8A8A8F',
+  },
+  // Photo ke kone me: number + tap karke full-screen zoom
+  zoomBadge: {
+    position: 'absolute',
+    right: px(8),
+    top: px(8),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: px(4),
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: px(10),
+    paddingHorizontal: px(8),
+    paddingVertical: px(3),
+  },
+  zoomBadgeText: {
+    ...F,
+    color: '#fff',
+    fontSize: fontScale(11),
+    fontWeight: '600',
+  },
+  /* ---------- SPECIFICATIONS ---------- */
+  specRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: px(7),
+    borderBottomWidth: 1,
+    borderBottomColor: '#EFEFF2',
+  },
+  specRowLast: {
+    borderBottomWidth: 0,
+  },
+  specLabel: {
+    ...F,
+    flex: 1,
+    fontSize: fontScale(12),
+    color: '#777E90',
+  },
+  specValue: {
+    ...F,
+    flex: 1.3,
+    fontSize: fontScale(12),
+    color: '#1D1F22',
+    textAlign: 'right',
   },
   /* ---------- TITLE / PRICE ---------- */
   titleRow: {

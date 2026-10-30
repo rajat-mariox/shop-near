@@ -568,6 +568,24 @@ module.exports = () => {
         return plain;
       });
     }
+    // Seller ko ek hi field me delivery address: order ka snapshot, purane
+    // orders (snapshot se pehle ke) me populated addressId. Address delete ho
+    // chuka ho to null.
+    const snap = o.shippingAddress;
+    const addr = snap && snap.address ? snap : o.addressId || null;
+    o.deliveryAddress = addr
+      ? {
+          fullName: addr.fullName || o.userId?.fullName || "",
+          mobile: addr.mobile || o.userId?.mobileNumber || "",
+          address: addr.address || "",
+          city: addr.city || "",
+          state: addr.state || "",
+          pinCode: addr.pinCode != null ? String(addr.pinCode) : "",
+          addressType: addr.addressType || "",
+          lat: addr.lat ?? null,
+          lng: addr.lng ?? null,
+        }
+      : null;
     return o;
   };
 

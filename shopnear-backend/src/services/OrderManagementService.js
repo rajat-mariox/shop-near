@@ -142,6 +142,18 @@ module.exports = () => {
         products,
         orderId: `ORD-${Date.now()}-${userId.toString().slice(-6)}`,
         addressId,
+        shippingAddress: {
+          fullName: deliveryAddress.fullName,
+          mobile: deliveryAddress.mobile,
+          address: deliveryAddress.address,
+          city: deliveryAddress.city,
+          state: deliveryAddress.state,
+          pinCode:
+            deliveryAddress.pinCode != null ? String(deliveryAddress.pinCode) : "",
+          addressType: deliveryAddress.addressType,
+          lat: deliveryAddress.lat,
+          lng: deliveryAddress.lng,
+        },
         subtotal: cart.subtotal,
         shippingCost: cart.deliveryCharge,
         taxAmount: cart.taxAmount,

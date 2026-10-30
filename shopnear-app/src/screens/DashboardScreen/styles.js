@@ -26,6 +26,23 @@ export const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.WHITE,
     },
+    // Scroll par status bar ke peeche coral patti (index.js scrollY se opacity)
+    // Header ke sabse upar ka rang (bounce me safed patti ki jagah yahi dikhe)
+    topBackdrop: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 300,
+        backgroundColor: '#DA3A22',
+    },
+    statusBarScrim: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: Colors.theme1,
+    },
     scrollContent: {
         paddingBottom: verticalScale(90),
     },

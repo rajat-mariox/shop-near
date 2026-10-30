@@ -3,6 +3,43 @@ const Product = require("../models/Product");
 const Seller = require("../models/Seller");
 const CouponCode = require("../models/CouponCode");
 
+// Coupon ka discount: percentage/fixed, admin ki "Max Discount" limit ke saath
+const couponDiscount = (coupon, subtotal) => {
+  let d =
+    coupon.discountType === "percentage"
+      ? Math.round((subtotal * coupon.discountValue) / 100)
+      : coupon.discountValue;
+  if (coupon.maxDiscountAmount > 0) d = Math.min(d, coupon.maxDiscountAmount);
+  return Math.max(0, Math.min(d, subtotal));
+};
+
+// Item add/qty/remove ke baad totals dobara - laga hua coupon bhi naye subtotal
+// par recalc hota hai (pehle purana discountAmount hi chalta rehta tha). Min
+// order se neeche gire ya coupon band ho jaye to coupon hat jaata hai.
+const recalcTotals = async (cart) => {
+  const subtotal = cart.items.reduce(
+    (sum, item) => sum + item.discountPrice * item.quantity,
+    0
+  );
+  cart.subtotal = subtotal;
+  cart.taxAmount = Math.round(subtotal * 0.18); // 18% GST
+  let discount = 0;
+  if (cart.appliedCoupon && cart.appliedCoupon.code) {
+    const coupon = await CouponCode.findOne({
+      code: cart.appliedCoupon.code,
+      isActive: true,
+    });
+    if (!coupon || subtotal < (coupon.minOrderValue || 0)) {
+      cart.appliedCoupon = null;
+    } else {
+      discount = couponDiscount(coupon, subtotal);
+    }
+  }
+  cart.discountAmount = discount;
+  cart.total =
+    cart.subtotal + (cart.deliveryCharge || 0) + cart.taxAmount - discount;
+};
+
 module.exports = () => {
   /**
    * Get user cart
@@ -173,19 +210,8 @@ module.exports = () => {
       }
 
       // Calculate totals
-      let subtotal = 0;
-      cart.items.forEach((item) => {
-        subtotal += item.discountPrice * item.quantity;
-      });
-
-      cart.subtotal = subtotal;
       cart.deliveryCharge = seller.deliveryCharge || 0;
-      cart.taxAmount = Math.round(subtotal * 0.18); // 18% GST
-      cart.total =
-        cart.subtotal +
-        cart.deliveryCharge +
-        cart.taxAmount -
-        cart.discountAmount;
+      await recalcTotals(cart);
 
       await cart.save();
 
@@ -247,19 +273,8 @@ module.exports = () => {
 
       item.quantity = quantity;
 
-      // Recalculate totals
-      let subtotal = 0;
-      cart.items.forEach((item) => {
-        subtotal += item.discountPrice * item.quantity;
-      });
-
-      cart.subtotal = subtotal;
-      cart.taxAmount = Math.round(subtotal * 0.18);
-      cart.total =
-        cart.subtotal +
-        cart.deliveryCharge +
-        cart.taxAmount -
-        cart.discountAmount;
+      // Recalculate totals (coupon bhi)
+      await recalcTotals(cart);
 
       await cart.save();
 
@@ -302,19 +317,8 @@ module.exports = () => {
 
       cart.items = cart.items.filter((i) => i._id.toString() !== itemId);
 
-      // Recalculate totals
-      let subtotal = 0;
-      cart.items.forEach((item) => {
-        subtotal += item.discountPrice * item.quantity;
-      });
-
-      cart.subtotal = subtotal;
-      cart.taxAmount = Math.round(subtotal * 0.18);
-      cart.total =
-        cart.subtotal +
-        cart.deliveryCharge +
-        cart.taxAmount -
-        cart.discountAmount;
+      // Recalculate totals (coupon bhi)
+      await recalcTotals(cart);
 
       // If cart is empty, mark as inactive
       if (cart.items.length === 0) {
@@ -382,15 +386,8 @@ module.exports = () => {
         return next();
       }
 
-      // Calculate discount
-      let discountAmount = 0;
-      if (coupon.discountType === "percentage") {
-        discountAmount = Math.round(
-          (cart.subtotal * coupon.discountValue) / 100
-        );
-      } else {
-        discountAmount = coupon.discountValue;
-      }
+      // Calculate discount (max discount limit ke saath)
+      const discountAmount = couponDiscount(coupon, cart.subtotal);
 
       // Apply coupon
       cart.appliedCoupon = {
